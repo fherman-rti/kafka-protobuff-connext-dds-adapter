@@ -54,6 +54,13 @@ git checkout a9e68fbdf5a6b32dc766eb1f38b41ba9fdbe4d0d
 git submodule update --init --recursive
 ```
 
+Then apply the local fix kept in this repo's [patches/](patches/README.md)
+directory (see that file for what it fixes) before building:
+
+```powershell
+git apply "..\patches\DdsToProtobuf.cpp.patch"
+```
+
 ## Important upstream caveats
 
 The upstream example is a useful starting point, but it should not be presented
@@ -266,13 +273,11 @@ If rehearsing on a machine that has never run this demo:
 4. Copy or clone this workspace (including `demo/` and, if already cloned,
    `rticonnextdds-gateway/`) onto the machine.
 5. Follow **Upstream baseline** and **Build plan** above to clone (if not
-   already present), pin to the commit, and build/install the Gateway.
-   - If `rticonnextdds-gateway` is being freshly cloned rather than copied
-     from this workspace, reapply the local `DdsToProtobuf.cpp` scratch-buffer
-     patch (see `/memories/repo` notes in this workspace, or search this
-     repo's session history) before building — it is not part of the
-     upstream source and fixes a noisy benign log line, not a functional bug,
-     so the demo will still work without it, but the log will reappear.
+   already present), pin to the commit, apply the patch from
+   [patches/](patches/README.md), and build/install the Gateway.
+   - The patch fixes a noisy benign log line, not a functional bug, so the
+     demo will still work without it, but the log will reappear if it is
+     skipped.
 6. Follow [demo/playbook.md](demo/playbook.md) from **Step 1** onward,
    end-to-end, without skipping any step.
 
