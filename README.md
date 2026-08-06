@@ -28,17 +28,15 @@ After installing the software, restart Windows if an installer requests it.
 ### 2. Clone this repository
 
 **Shell:** PowerShell 5.1 or PowerShell 7
-**Working directory:** Any
+**Working directory:** The parent directory in which you want the repository
+installed.
 
-Choose a parent directory in which to install the repository. Enter its full
-path when prompted. The directory will be created if it does not exist. Do not
-include `kafka-protobuff-connext-dds-adapter` in the path; `git clone` creates
-that repository directory beneath the parent directory you choose.
+Before running the commands below, use `Set-Location` (or `cd`) to enter the
+parent directory of your choice. Do not create or enter a
+`kafka-protobuff-connext-dds-adapter` directory yourself; `git clone` creates
+that repository directory beneath your current directory.
 
 ```powershell
-$ParentDirectory = Read-Host "Enter the full path of the parent directory"
-New-Item -ItemType Directory -Force -Path $ParentDirectory | Out-Null
-Set-Location $ParentDirectory
 git clone https://github.com/fherman-rti/kafka-protobuff-connext-dds-adapter.git
 Set-Location .\kafka-protobuff-connext-dds-adapter
 ```
