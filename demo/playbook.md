@@ -1,16 +1,25 @@
-# Kafka + Protobuf Shapes Demo — Playbook
+# Kafka + Protobuf Shapes Demo - Playbook
 
 Step-by-step instructions for running the customer-facing demo: RTI Routing
 Service bridging DDS Shapes traffic to/from Kafka, with Protocol Buffers
 serialization in between.
 
-All commands below are PowerShell and use the **full absolute path** to each
-script, so they can be run from any directory/terminal — you do not need to
-`cd` anywhere first. The workspace root referenced throughout is:
+All command blocks use **PowerShell 5.1 or PowerShell 7**. Do not use Command
+Prompt (`cmd.exe`) for these commands. Unless a step explicitly says
+**Working directory: Any**, run it from the repository root: the
+`kafka-protobuff-connext-dds-adapter` directory created by the root README.
 
+Before starting, verify the current directory.
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
+```powershell
+Test-Path .\demo\scripts\Start-Demo.ps1
 ```
-C:\Users\fherman\Documents\kafka-proto-buff-adapter
-```
+
+The expected result is `True`. If it is `False`, use `Set-Location` to enter
+the cloned `kafka-protobuff-connext-dds-adapter` directory before continuing.
 
 Prerequisites (one-time, already completed in this workspace):
 - RTI Connext DDS Professional 7.7.0 installed with a valid license.
@@ -27,6 +36,10 @@ anything else.
 
 1. Launch Docker Desktop and wait for it to report "Engine running".
 2. Confirm from a terminal:
+
+   **Shell:** PowerShell 5.1 or PowerShell 7
+   **Working directory:** Any
+
    ```powershell
    docker info --format "{{.ServerVersion}}"
    ```
@@ -34,8 +47,12 @@ anything else.
 
 ## 2. Validate prerequisites
 
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Test-Prerequisites.ps1"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+& .\demo\scripts\Test-Prerequisites.ps1
 ```
 
 This checks the Connext install, license, Gateway build artifacts, Docker
@@ -46,8 +63,11 @@ yet.
 
 ## 3. Start Kafka (with Control Center)
 
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Start-Kafka.ps1" -WithControlCenter
+& .\demo\scripts\Start-Kafka.ps1 -WithControlCenter
 ```
 
 This starts the single-broker KRaft-mode Kafka container plus Confluent
@@ -67,6 +87,9 @@ The broker runs inside a Linux container under Docker Desktop's WSL2 backend,
 so it won't show up as its own process in Windows Task Manager (only
 `Vmmem`/`Vmmemwsl` and Docker's own management processes will). To inspect it
 directly, use Docker's tools instead:
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Any
 
 ```powershell
 docker stats kafka-shapes-protobuf-broker
@@ -96,8 +119,11 @@ the more compelling proof once messages are flowing.
 
 ## 5. Launch the demo stack
 
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Start-Demo.ps1"
+& .\demo\scripts\Start-Demo.ps1
 ```
 
 This opens four windows and records their process IDs to
@@ -138,16 +164,19 @@ The Routing Service window may log:
 ERROR DDS_DynamicData2_get_string: Output buffer too small for member (name = "color", id = 1). Provided size (N), requires size (N+1).
 ```
 
-This has been fixed as of the local patch to
-`rticonnextdds-gateway/common/protobuf2dds/srcCxx/DdsToProtobuf.cpp` (see
-repo memory notes) — it should no longer appear. If it does, confirm
+This is fixed in the included
+`rticonnextdds-gateway/common/protobuf2dds/srcCxx/DdsToProtobuf.cpp` source and
+should no longer appear. If it does, confirm
 `rtiprotobuftransf.dll` was rebuilt/reinstalled and Routing Service was
-restarted after the patch (the DLL is only loaded at process startup).
+restarted after the rebuild (the DLL is only loaded at process startup).
 
 ## 7. Stop the demo
 
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Stop-Demo.ps1"
+& .\demo\scripts\Stop-Demo.ps1
 ```
 
 Stops only the processes recorded in `demo\logs\demo-state.json` (Routing
@@ -158,13 +187,16 @@ Use `-SkipKafka` to leave the Kafka broker running (e.g. if you plan to
 restart the demo again shortly):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Stop-Demo.ps1" -SkipKafka
+& .\demo\scripts\Stop-Demo.ps1 -SkipKafka
 ```
 
 ## 8. Collect logs (troubleshooting only)
 
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Collect-Logs.ps1"
+& .\demo\scripts\Collect-Logs.ps1
 ```
 
 Zips Routing Service/publisher/subscriber logs, the demo state file, the

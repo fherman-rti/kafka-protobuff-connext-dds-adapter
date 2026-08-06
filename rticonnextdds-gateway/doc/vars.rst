@@ -1,0 +1,30 @@
+.. |br| raw:: html
+
+   <br />
+
+.. |CONNEXT_VERSION| replace:: 7.3.0
+.. |RS| replace:: *Routing Service*
+.. |RS_SDK| replace:: |RS| *SDK*
+.. |RSs| replace:: *Routing Services*
+.. |RTI_RS| replace:: *RTI* |RS|
+.. |RTI_RS_TM| replace:: *RTI®* |RS|
+.. |CMAKE| replace:: *CMake*
+.. |CONNEXT| replace:: *Connext DDS*
+.. |RTI_CONNEXT| replace:: *RTI* |CONNEXT|
+.. |RTI_GATEWAY| replace:: *RTI Connext Gateway*
+.. |RTI_GATEWAY_PLAIN| replace:: RTI Connext Gateway
+.. |RTI_GATEWAY_TM| replace:: *RTI Connext® Gateway*
+.. |DDS_SAMPLES| replace:: *DDS Samples*
+.. |DDS_TYPE| replace:: *DDS Type*
+.. |DDS_TYPES| replace:: *DDS Types*
+.. |DDS_TOPIC| replace:: *DDS Topic*
+.. |DDS_DOMAIN| replace:: *DDS Domain*
+.. |DDS_DOMAINS| replace:: *DDS Domains*
+.. |COPYRIGHT_YEAR| replace:: 2022
+.. |COPYRIGHT_HEADER| replace:: © |COPYRIGHT_YEAR| Real-Time Innovations, Inc.
+.. |PAHO_ASYNC| replace:: *Paho C Client Async MQTT Library*
+.. |RSMQTT| replace:: |RS| *MQTT Adapter*
+.. |RSMODBUS| replace:: |RS| *Modbus Adapter*
+.. |RSKAFKA| replace:: |RS| *Kafka Adapter*
+.. |RSDIA| replace:: |RS| *Database Integration Adapter*
+.. |OPENSSL| replace:: *OpenSSL*

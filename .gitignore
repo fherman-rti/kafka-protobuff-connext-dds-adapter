@@ -1,11 +1,10 @@
-# Vendored upstream Gateway source (see README.md "Upstream baseline" for the
-# pinned clone/checkout commands). Not committed here: it's a large third-party
-# tree with its own git history, submodules, and build/install output.
-rticonnextdds-gateway/
-
 # Runtime-generated demo artifacts
 demo/logs/
 demo/config/shape_type.pbdesc
+
+# Gateway build/install output
+rticonnextdds-gateway/build/
+rticonnextdds-gateway/install/
 
 # OS/editor cruft
 Thumbs.db

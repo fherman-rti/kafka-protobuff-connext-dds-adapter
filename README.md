@@ -1,11 +1,114 @@
 # RTI Routing Service Kafka/Protobuf Shapes Demonstration
 
-This repository is intended to package a customer-ready demonstration of the
-RTI Routing Service Kafka adapter with RTI Shapes Demo and Protocol Buffers.
-The upstream implementation is in the
-[RTI Connext Gateway repository](https://github.com/rticommunity/rticonnextdds-gateway),
-under its
-[Kafka Shapes Protobuf example](https://github.com/rticommunity/rticonnextdds-gateway/tree/master/examples/kafka/kafka-shapes-protobuf).
+This is a standalone repository for a customer-ready demonstration of the RTI
+Routing Service Kafka adapter with RTI Shapes Demo and Protocol Buffers. It
+includes the pinned Gateway source and third-party source needed for the demo.
+You do not need to clone, patch, or maintain another source repository.
+
+## Windows clean-room installation
+
+Follow these steps in order on a Windows machine that has not previously run
+the demo. All command blocks in this section use **PowerShell** syntax.
+**Command Prompt (`cmd.exe`) is not used anywhere in this installation.**
+
+### 1. Install the required software
+
+Install these products before cloning this repository:
+
+- RTI Connext DDS Professional 7.7.0 with Routing Service and Shapes Demo.
+- A valid Connext license. Place `rti_license.dat` in the Connext installation
+  directory or set `RTI_LICENSE_FILE` to its full path.
+- Git for Windows.
+- CMake 3.10 or newer. Select the installer option that adds CMake to `PATH`.
+- Visual Studio 2022 with the **Desktop development with C++** workload.
+- Docker Desktop.
+
+After installing the software, restart Windows if an installer requests it.
+
+### 2. Clone this repository
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Any directory in which you want the demo folder created.
+The example below uses `$HOME\source`.
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME\source" | Out-Null
+Set-Location "$HOME\source"
+git clone https://github.com/fherman-rti/kafka-protobuff-connext-dds-adapter.git
+Set-Location .\kafka-protobuff-connext-dds-adapter
+```
+
+Keep this PowerShell window open. From this point forward, "repository root"
+means the directory printed by this command:
+
+```powershell
+(Get-Location).Path
+```
+
+Confirm that the included Gateway source is present:
+
+```powershell
+Test-Path .\rticonnextdds-gateway\CMakeLists.txt
+```
+
+The expected result is `True`. If it is `False`, stop: the clone is incomplete
+or PowerShell is not in the repository root.
+
+### 3. Build the Gateway components
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
+The script configures a Release build and installs the Kafka adapter, Protobuf
+transformation, and Shapes example beneath
+`rticonnextdds-gateway\install`.
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+& .\demo\scripts\Build-Gateway.ps1
+```
+
+If Connext is installed somewhere other than
+`C:\Program Files\rti_connext_dds-7.7.0`, specify its location:
+
+```powershell
+& .\demo\scripts\Build-Gateway.ps1 -ConnextDir "D:\path\to\rti_connext_dds-7.7.0"
+```
+
+The build is complete when the script prints
+`Gateway build and installation completed`. Do not continue after a red error.
+
+### 4. Start Docker Desktop
+
+Start Docker Desktop from the Windows Start menu and wait until it reports
+that the engine is running.
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Any
+
+```powershell
+docker info --format "{{.ServerVersion}}"
+```
+
+Continue only if this prints a Docker version without a connection error.
+
+### 5. Validate the installation
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
+
+```powershell
+& .\demo\scripts\Test-Prerequisites.ps1
+```
+
+Continue only when the script ends with `Prerequisite check PASSED.` A warning
+that the Kafka broker is not reachable is expected because Kafka starts in the
+next phase.
+
+### 6. Run the demonstration
+
+Continue with [demo/playbook.md](demo/playbook.md). It starts at the repository
+root and labels the required shell and working directory for every command.
 
 ## Objective
 
@@ -30,10 +133,12 @@ Kafka publisher produces GREEN shapes on Kafka topic Circle
 Using different shape topics for the two directions permits both routes to run
 concurrently without creating a DDS/Kafka feedback loop.
 
-## Upstream baseline
+## Included source baseline
 
-Use the upstream `master` branch pinned to commit
+The included `rticonnextdds-gateway/` source is based on upstream commit
 [`a9e68fb`](https://github.com/rticommunity/rticonnextdds-gateway/commit/a9e68fbdf5a6b32dc766eb1f38b41ba9fdbe4d0d).
+Its required submodule source is included directly in this repository, and the
+`DdsToProtobuf.cpp` string-buffer logging fix is already applied.
 
 Do not use an unpinned branch for a customer demonstration. Although the
 upstream README identifies `develop` as the active branch for Connext 7.7, the
@@ -44,22 +149,6 @@ Connext 7.7, while the CMake project and
 [published Gateway documentation](https://community.rti.com/static/documentation/gateway/current/index.html)
 still identify themselves as version 7.3.0. Compatibility with the selected
 Connext installation must therefore be verified during rehearsal.
-
-Clone the complete source tree and its submodules:
-
-```powershell
-git clone --recurse-submodules https://github.com/rticommunity/rticonnextdds-gateway.git
-Set-Location rticonnextdds-gateway
-git checkout a9e68fbdf5a6b32dc766eb1f38b41ba9fdbe4d0d
-git submodule update --init --recursive
-```
-
-Then apply the local fix kept in this repo's [patches/](patches/README.md)
-directory (see that file for what it fixes) before building:
-
-```powershell
-git apply "..\patches\DdsToProtobuf.cpp.patch"
-```
 
 ## Important upstream caveats
 
@@ -97,7 +186,7 @@ unchanged:
 - A supported C/C++ build toolchain
 - Docker Engine and Docker Compose for the Kafka broker
 - Ports `9092` for Kafka and, if selected, `9021` for Confluent Control Center
-- PowerShell for the planned Windows launch automation
+- PowerShell 5.1 or PowerShell 7 for installation and launch automation
 
 A separate `protoc` installation is not required when the bundled Protobuf
 build is enabled.
@@ -107,33 +196,24 @@ build is enabled.
 Use a Release build so that the plugins match the normal Routing Service
 executable. Debug plugins require the debug Routing Service executable.
 
-Build only the Kafka adapter, Protobuf transformation, and their example:
+The clean-room build script configures and builds only the Kafka adapter,
+Protobuf transformation, and their example.
+
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
 
 ```powershell
-cmake -S . -B build `
-  -G "Visual Studio 17 2022" `
-  -A x64 `
-  -DCONNEXTDDS_DIR="C:\Program Files\rti_connext_dds-7.7.0" `
-  -DCONNEXTDDS_ARCH=x64Win64VS2017 `
-  -DCMAKE_INSTALL_PREFIX=install `
-  -DRTIGATEWAY_ENABLE_ALL=OFF `
-  -DRTIGATEWAY_ENABLE_KAFKA=ON `
-  -DRTIGATEWAY_ENABLE_TSFM_PROTOBUF=ON `
-  -DRTIGATEWAY_ENABLE_EXAMPLES=ON `
-  -DRTIGATEWAY_ENABLE_PROTOBUF_BUILD=ON `
-  -DRTIGATEWAY_ENABLE_TESTS=OFF
-
-cmake --build build --config Release --target install
+& .\demo\scripts\Build-Gateway.ps1
 ```
 
 Confirm that the installation contains at least:
 
 ```text
-install/lib/rtikafkaadapter.dll
-install/lib/rtiprotobuftransf.dll
-install/examples/kafka/kafka-shapes-protobuf/shape_type.pbdesc
-install/examples/kafka/kafka-shapes-protobuf/bin/shapes_kafka_publisher.exe
-install/examples/kafka/kafka-shapes-protobuf/bin/shapes_kafka_subscriber.exe
+rticonnextdds-gateway/install/lib/rtikafkaadapter.dll
+rticonnextdds-gateway/install/lib/rtiprotobuftransf.dll
+rticonnextdds-gateway/install/examples/kafka/kafka-shapes-protobuf/shape_type.pbdesc
+rticonnextdds-gateway/install/examples/kafka/kafka-shapes-protobuf/bin/shapes_kafka_publisher.exe
+rticonnextdds-gateway/install/examples/kafka/kafka-shapes-protobuf/bin/shapes_kafka_subscriber.exe
 ```
 
 The demonstration shell must include the Gateway `install/lib` directory and
@@ -254,54 +334,28 @@ machine requires its own prerequisite and clean-start validation.
 
 ## Clean-room validation instructions
 
-Before presenting to a customer, rehearse the full demonstration on a machine
-that has none of this workspace's prior state — either a genuinely fresh
-Windows machine/VM, or this same machine with Docker/build artifacts reset to
-a known-clean starting point. This validates that nothing about the demo
-secretly depends on leftover local state.
+Use the [Windows clean-room installation](#windows-clean-room-installation) at
+the beginning of this README for a new machine or a fresh clone.
 
-### A. Fresh machine / fresh install checklist
-
-If rehearsing on a machine that has never run this demo:
-
-1. Install RTI Connext DDS Professional 7.7.0 (Routing Service + Shapes Demo
-   selected) and place a valid license at the default license path.
-2. Install Git, CMake 3.10+, and a supported C/C++ toolchain (Visual Studio
-   2022 with the "Desktop development with C++" workload, on Windows).
-3. Install Docker Desktop and start it; confirm the engine is running with
-   `docker info --format "{{.ServerVersion}}"`.
-4. Copy or clone this workspace (including `demo/` and, if already cloned,
-   `rticonnextdds-gateway/`) onto the machine.
-5. Follow **Upstream baseline** and **Build plan** above to clone (if not
-   already present), pin to the commit, apply the patch from
-   [patches/](patches/README.md), and build/install the Gateway.
-   - The patch fixes a noisy benign log line, not a functional bug, so the
-     demo will still work without it, but the log will reappear if it is
-     skipped.
-6. Follow [demo/playbook.md](demo/playbook.md) from **Step 1** onward,
-   end-to-end, without skipping any step.
-
-### B. Same-machine clean-state reset
+### Reset an existing installation
 
 If rehearsing again on this same machine and you want to rule out
 leftover-state dependencies (stale containers, offsets, logs, demo-state
 files) without a full reinstall:
 
-```powershell
-# Stop demo processes, remove the Kafka broker/Control Center containers,
-# and delete their volumes (wipes all Kafka topics/offsets/data).
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\scripts\Stop-Demo.ps1"
-Set-Location "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\docker"
-docker compose down -v
+**Shell:** PowerShell 5.1 or PowerShell 7
+**Working directory:** Repository root
 
-# Confirm no demo containers or processes remain.
+```powershell
+& .\demo\scripts\Stop-Demo.ps1
+Push-Location .\demo\docker
+docker compose down -v
+Pop-Location
+
 docker ps -a --filter name=kafka-shapes-protobuf
 Get-Process rtiroutingservice, rtishapesdemo, shapes_kafka_publisher, shapes_kafka_subscriber -ErrorAction SilentlyContinue
 
-# Clear prior demo logs and state so nothing from a previous run is reused.
-Remove-Item "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\logs\*.log", `
-    "C:\Users\fherman\Documents\kafka-proto-buff-adapter\demo\logs\demo-state.json" `
-    -ErrorAction SilentlyContinue
+Remove-Item .\demo\logs\*.log, .\demo\logs\demo-state.json -ErrorAction SilentlyContinue
 ```
 
 Then follow [demo/playbook.md](demo/playbook.md) from **Step 1** onward. This

@@ -1,0 +1,169 @@
+# RTI Connext Gateway
+
+The RTI Connext® Gateway is a software component that allows integrating
+different types of connectivity protocols with DDS. Integration in this
+context means that data flows from different protocols are adapted to
+interface with DDS, establishing communication from and to DDS.
+
+RTI Connext Gateway provides an open framework based on the RTI Routing Service SDK
+that enables users to easily add communication protocols as needed, in addition
+to any other protocol implementations that may be included as part of the
+framework.
+
+*NOTE*: A Routing Service adapter between DDS and DNP3 can be found in this
+repository: https://github.com/rticommunity/rticonnextdds-dnp3
+
+## Installation
+
+RTI Connext Gateway is distributed in source format. You can clone the
+source repository using git:
+
+```sh
+git clone --recurse-submodule https://github.com/rticommunity/rticonnextdds-gateway.git
+```
+
+The `--recurse-submodule` option is required to clone additional third-party
+repositories as submodules.
+
+If you forget to clone the repository with `--recurse-submodule`, simply run the
+following command to pull all the dependencies:
+
+```sh
+git submodule update --init --recursive
+```
+
+## Building
+
+**Requirements**:
+
+- [Connext DDS 7.3.0 or newer](https://community.rti.com/content/page/downloads)
+  - See [below](#compatibility-with-rti-connext) for more details on version compatibility.
+- [cmake 3.10+](https://cmake.org/download/)
+- [Python 3.8+](https://www.python.org/downloads/) (only required to run tests).
+
+In order to build the RTI Connext Gateway components you have to run the following
+command:
+
+Linux® and macOS® systems
+
+```sh
+mkdir build
+cd build
+cmake .. -DCONNEXTDDS_DIR=/path/to/connextdds/installation/dir \
+    -DCMAKE_INSTALL_PREFIX=../install
+cmake --build . -- install
+```
+
+By default CMake builds debug artifacts. Debug libraries should be loaded and
+run with the debug version of Routing Service debug, which is located at:
+
+```sh
+$NDDSHOME/resource/app/bin/<architecture>/rtiroutingserviceappd
+```
+
+If you want to build them as 'release', you should add the following flag when
+calling CMake:
+
+```sh
+-DCMAKE_BUILD_TYPE=Release
+```
+
+Windows® systems
+
+```bat
+mkdir build
+cd build
+cmake .. -DCONNEXTDDS_DIR=/path/to/connextdds/installation/dir \
+    -DCMAKE_INSTALL_PREFIX=../install \
+    -DCMAKE_BUILD_TYPE=Debug|Release \
+    -G <generator name>
+cmake --build . --config Debug|Release --target install
+```
+
+The generator name comes from CMake, you can see a list of the Visual Studio®
+generators here: https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html#id13
+
+In case the architecture is 64 bits, we should also add `-A x64`. For
+example, the following option will generate a solution for Visual Studio 2015
+64 bits:
+
+```sh
+-G "Visual Studio 14 2015" -A x64
+```
+
+For multi-configuration generator, such as Visual Studio solutions, we need to
+specify the configuration mode when building it:
+
+```sh
+--config Debug|Release
+```
+
+## Compatibility with RTI Connext
+
+The RTI Connext Gateway is an experimental, source-based, add-on compatible with the most
+recent versions of RTI Connext.
+
+The repository will always support the most recently released version of Connext, and
+the most recent LTS version.
+
+A dedicated branch will be created whenever support for an LTS version is dropped
+from the main development branch. These version-specific branches will receive bug fixes
+as long as the associated Connext version is still within its planned support window.
+
+The following table summarizes the versions of Connext currently supported by the
+RTI Connext Gateway:
+
+| Connext Version | Repository Branch | Status |
+|-----------------|-------------------|--------|
+| 7.7.0 (LTS)     | `develop`         | Active |
+| 7.6.0           | `develop`         | EOL |
+| 7.5.0           | `develop`         | EOL |
+| 7.3.0 (LTS)     | `develop`         | Active |
+| 6.1.2 (LTS)     | `release/6.1.2`   | EOL |
+| 6.1.1 (LTS)     | `release/6.1.1`   | EOL |
+| 6.0.1 (LTS)     | `release/6.0.1`   | EOL |
+
+## Documentation
+
+The documentation can be found online in the following link:
+https://community.rti.com/static/documentation/gateway/current/index.html
+
+### Building Documentation Locally
+
+**Requirements**:
+
+- [doxygen](https://www.doxygen.nl/download.html)
+- [sphinx](https://www.sphinx-doc.org/en/master/usage/installation.html)
+- [graphviz](http://www.graphviz.org/download/): this might be required to run
+the `dot` command.
+- [docutils 0.14+](https://docutils.sourceforge.io/)
+
+- You can used the included manifest to install all Python dependencies:
+
+    ```sh
+    pip install -r doc/requirements.txt
+    ```
+
+In order to build the RTI Connext Gateway documentation, you have to add the
+`RTIGATEWAY_ENABLE_DOCS` flag when calling CMake:
+
+```sh
+mkdir build
+cd build
+cmake .. -DCONNEXTDDS_DIR=/path/to/connextdds/installation/dir \
+    -DCMAKE_INSTALL_PREFIX=../install \
+    -DRTIGATEWAY_ENABLE_DOCS=ON
+```
+
+The documentation will be generated under the install directory. The following
+file contains the RTI Connext Gateway documentation:
+
+- &lt;RTI Connext Gateway folder&gt;/install/doc/index.html
+
+Specific documentation for the plugins can be found in the section
+`1.4. RTI Connext Gateway Plugins`.
+
+Further information about how to customize the build can be found in the
+section `4. Building from source`.
+
+Linux® is the registered trademark of Linus Torvalds in the U.S. and other countries.
