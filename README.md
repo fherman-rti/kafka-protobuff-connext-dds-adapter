@@ -28,12 +28,17 @@ After installing the software, restart Windows if an installer requests it.
 ### 2. Clone this repository
 
 **Shell:** PowerShell 5.1 or PowerShell 7
-**Working directory:** Any directory in which you want the demo folder created.
-The example below uses `$HOME\source`.
+**Working directory:** Any
+
+Choose a parent directory in which to install the repository. Enter its full
+path when prompted. The directory will be created if it does not exist. Do not
+include `kafka-protobuff-connext-dds-adapter` in the path; `git clone` creates
+that repository directory beneath the parent directory you choose.
 
 ```powershell
-New-Item -ItemType Directory -Force -Path "$HOME\source" | Out-Null
-Set-Location "$HOME\source"
+$ParentDirectory = Read-Host "Enter the full path of the parent directory"
+New-Item -ItemType Directory -Force -Path $ParentDirectory | Out-Null
+Set-Location $ParentDirectory
 git clone https://github.com/fherman-rti/kafka-protobuff-connext-dds-adapter.git
 Set-Location .\kafka-protobuff-connext-dds-adapter
 ```
