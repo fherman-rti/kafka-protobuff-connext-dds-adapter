@@ -1,7 +1,0 @@
-/build
-/dist
-/install
-/.vscode
-/idl/Mqtt.xml
-/personal.mk
-*.log

@@ -140,6 +140,13 @@ The included `rticonnextdds-gateway/` source is based on upstream commit
 Its required submodule source is included directly in this repository, and the
 `DdsToProtobuf.cpp` string-buffer logging fix is already applied.
 
+This is a build-focused source subset for the Windows Kafka/Protobuf demo, not
+a complete mirror of the upstream repositories. Unused Gateway plugins,
+examples, tests, documentation, packaging, CI files, and non-C++ Protobuf
+runtime trees are intentionally omitted. The included tree is validated by a
+clean configure, build, install, and prerequisite check using the commands in
+this README.
+
 Do not use an unpinned branch for a customer demonstration. Although the
 upstream README identifies `develop` as the active branch for Connext 7.7, the
 remote `develop` branch is currently based on an older 2021 commit and does not
