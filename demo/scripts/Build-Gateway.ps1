@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $sourceDir = Join-Path $repoRoot "rticonnextdds-gateway"
-$buildDir = Join-Path $sourceDir "build"
+$buildDir = Join-Path $repoRoot "b"
 $installDir = Join-Path $sourceDir "install"
 
 if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {

@@ -3,6 +3,7 @@ demo/logs/
 demo/config/shape_type.pbdesc
 
 # Gateway build/install output
+b/
 rticonnextdds-gateway/build/
 rticonnextdds-gateway/install/
 
