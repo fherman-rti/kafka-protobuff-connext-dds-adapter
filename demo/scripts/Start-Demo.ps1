@@ -25,7 +25,7 @@
     Kafka bootstrap.servers value used by Routing Service and the example apps.
 
 .PARAMETER DomainId
-    DDS domain ID used by Routing Service's DDS participant.
+    DDS domain ID used by Routing Service and Shapes Demo.
 
 .PARAMETER CircleColor
     Shape color used by the Kafka publisher on the Circle topic.
@@ -116,7 +116,9 @@ $pubProc = Start-DemoWindow -Title "Kafka Publisher (Circle) - press Enter to st
     -LogFile (Join-Path $logsDir "kafka_publisher.log")
 
 Write-Host "Starting Shapes Demo..." -ForegroundColor Cyan
-$shapesProc = Start-Process -FilePath $shapesDemoBat -PassThru
+$shapesProc = Start-Process -FilePath $shapesDemoBat `
+    -ArgumentList @("-domainId", "$DomainId") `
+    -PassThru
 
 $state = [ordered]@{
     startedAt        = (Get-Date).ToString("o")

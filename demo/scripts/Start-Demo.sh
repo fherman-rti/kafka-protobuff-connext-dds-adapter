@@ -54,6 +54,7 @@ esac
 if [ "$DEMO_PLATFORM" = "Linux" ] && [ "$headless" -ne 1 ]; then
     demo_die "Interactive Linux launch is deferred to the Ubuntu VM desktop phase. Use --headless."
 fi
+demo_require_macos_shared_memory
 
 demo_resolve_connext_dir "$connext_dir"
 demo_resolve_connext_arch "$connext_arch"
@@ -283,8 +284,13 @@ if [ "$headless" -ne 1 ]; then
         mkdir -p "$workspace_dir"
         cp -R "$template_dir"/. "$workspace_dir"/
     fi
+    # The installed wrapper also supplies templateDir and workspaceDir. Launch
+    # the embedded executable so the state file owns the real GUI process, and
+    # use an isolated workspace so clean-room runs do not inherit user state.
+    cp "$template_dir/USER_RTI_SHAPES_DEMO_QOS_PROFILES.template.xml" \
+        "$workspace_dir/USER_RTI_SHAPES_DEMO_QOS_PROFILES.xml"
     start_logged_component shapesDemo "RTI Shapes Demo" "$DEMO_SHAPES_DEMO" shapes_demo 0 \
-        -templateDir "$template_dir" -workspaceDir "$workspace_dir"
+        -domainId "$domain_id" -templateDir "$template_dir" -workspaceDir "$workspace_dir"
     shapes_pid=$DEMO_LAST_PID
 fi
 

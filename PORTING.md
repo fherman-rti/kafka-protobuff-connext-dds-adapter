@@ -115,21 +115,87 @@ the system Bash 3.2 baseline.
 points now exist for prerequisite checking, building, Kafka startup, demo
 startup, owned-process cleanup, and support-bundle collection. The macOS
 prerequisite run passed platform, Connext, license, toolchain, artifact,
-dependency, runtime-path, port, and GUI checks. Its only failure was the absent
-Docker installation. ZIP support-bundle generation and stale-state cleanup
-were also exercised successfully.
+dependency, runtime-path, port, GUI, Docker-engine, and Compose checks. ZIP
+support-bundle generation and stale-state cleanup were also exercised
+successfully.
 
-Docker is not installed, so the Kafka image spike and end-to-end traffic tests
-remain pending. A prior Routing Service launch reached Connext startup but was
-stopped by participant-index exhaustion in the current host session; that
-host-state issue is separate from plugin dependency loading and must be cleared
-before the end-to-end phase. The new process launcher and live PID-ownership
-path have not been executed in this restricted development session because
-process-table access is outside the repository-only permission profile.
+OrbStack 2.2.3 passed the Kafka container spike with its bundled Docker 29.4.0
+client, Docker Engine 29.4.0 (`linux/arm64`), and Compose v5.1.2. The pinned
+`confluentinc/cp-kafka:7.6.1` image pulled and started, its health check passed,
+host port 9092 was reachable, and `Square` and `Circle` were created. A second
+startup was idempotent. Compose teardown removed the broker and project network,
+and OrbStack released the host port after its short asynchronous cleanup delay.
+This particular OrbStack installation did not automatically expose `docker`
+and its Compose plugin on the login shell `PATH`, so the validation used the
+bundled tools directly. A clean-room run must confirm `docker version` and
+`docker compose version` work normally before invoking the repository scripts;
+the repository must not install or patch a user's container runtime.
+
+Connext 7.7 enables Distributed Logger and Monitoring Library 2.0 by default;
+the port must preserve both features. Routing Service and Shapes Demo both
+reported an observability-participant failure on domain 101. The failure also
+reproduced when Shapes was launched with RTI's stock macOS wrapper and default
+workspace, so it is not caused by the repository's XML or isolated workspace.
+Earlier stock-workspace logs show Connext failing to allocate its shared-memory
+receive resources before reporting `No index available for participant`.
+
+The host's System V settings were `shmmax=16777216`, `shmmni=32`, `shmseg=8`,
+and `shmall=4096`, with no stale segments present. RTI documents this exact
+macOS participant-index failure and recommends at least `shmmax=419430400`,
+`shmmni=128`, `shmseg=1024`, and `shmall=262144`. The Unix prerequisite script
+now rejects insufficient macOS settings instead of disabling observability.
+`Start-Demo.sh` performs the same guard before starting any process. Applying
+the host settings requires administrator access and a reboot and remains a
+clean-room host prerequisite; see <https://community.rti.com/kb/osx510>.
+
+RTI's Catalina-and-later `memory.plist` was installed as a root-owned launch
+daemon on this validation host. Before reboot, macOS applied `shmmax=419430400`,
+`shmseg=1024`, and `shmall=262144`, but rejected the live
+`kern.sysv.shmmni=128` write with `Operation not permitted`; System Integrity
+Protection is enabled. The daemon therefore recorded exit code 1, `shmmni`
+remained 32, and stock Shapes still displayed the same QoS error. This is a
+captured pre-reboot state, not a successful validation. After reboot, verify all
+four values and the launch-daemon exit status before retrying Shapes or marking
+the prerequisite complete.
+
+The Windows launcher uses RTI's `rtishapesdemo.bat` and normal user workspace.
+The macOS launcher starts the wrapper's embedded app executable with equivalent
+template/workspace arguments, but uses an isolated demo workspace so the script
+can own the real GUI PID and avoid inheriting user state. This process-ownership
+difference did not cause the QoS failure. Both launchers now pass the selected
+DDS domain explicitly. The Unix runtime setup also exports `NDDSHOME` and
+`CONNEXTDDS_DIR` because Shapes' installed QoS XML references `$(NDDSHOME)`.
+
+During diagnosis, a temporary process-scoped Monitoring override allowed
+repeated headless launches to load the Kafka adapter and Protobuf transformation
+and create both routes. That override has been removed from the port. An exact-
+type, native ARM64 DynamicData probe completed both traffic directions on DDS
+domain 64:
+
+- Kafka `Circle` to DDS delivered a sample with `color=GREEN`.
+- DDS `Square` to Kafka decoded all 12 probe samples with `color=BLUE` and the
+  expected `x`, `y`, and `shapesize` values.
+
+DDS Spy also discovered the native `ShapeType` writer with the expected
+`Circle` topic and type definition. The probe was a temporary validation tool,
+not a new runtime prerequisite or repository artifact.
+
+The native process launcher and live PID ownership checks were exercised with
+real Routing Service, publisher, and subscriber processes. Cleanup stopped only
+the recorded matching processes, removed valid state, and repeated
+successfully. Routing Service currently reports
+`DDS_OctetSeq_set_maximum:failed to assert buffer must not be loaned` while the
+Kafka reader is disabled during shutdown; startup and message processing still
+succeed, but this adapter cleanup diagnostic remains to be investigated.
+
+Interactive traffic through Shapes Demo with the documented shared-memory
+settings, Control Center, normal OrbStack CLI installation, and a complete
+fresh-checkout rehearsal remain pending.
 
 The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
 macOS workflow and the basis for the Ubuntu port. These changes are not final
-installation instructions until Docker and clean-room end-to-end runs pass.
+installation instructions until the interactive and fresh-checkout clean-room
+runs pass.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
@@ -144,6 +210,7 @@ Time-box this phase before refactoring all scripts.
   Service and Shapes Demo.
 - Confirm a valid license through the installation or `RTI_LICENSE_FILE`.
 - Confirm the installed Connext binaries and libraries are native ARM64.
+- Apply RTI's recommended macOS System V shared-memory settings and reboot.
 - Record the actual Connext installation path and architecture directory.
 
 Example probes to adapt to the installed layout:
@@ -153,9 +220,16 @@ uname -m
 file "$NDDSHOME/bin/rtiroutingservice"
 file "$NDDSHOME/bin/rtishapesdemo"
 find "$NDDSHOME/lib" -maxdepth 2 -type f -name '*.dylib' | head
+sysctl kern.sysv.shmmax kern.sysv.shmmni kern.sysv.shmseg kern.sysv.shmall
 ```
 
 Expected host architecture: `arm64`.
+
+`Test-Prerequisites.sh` reports the detected shared-memory settings and fails
+before demo startup when they are below RTI's recommendations. Use RTI's
+[macOS shared-memory instructions](https://community.rti.com/kb/osx510) for
+the administrator-owned configuration; repository scripts do not change
+kernel settings.
 
 ### Source-build spike
 
@@ -213,9 +287,12 @@ capabilities rather than a specific desktop product. A runtime is supported
 only after it passes the pinned-image, port-forwarding, health-check, topic,
 repeat-start, and teardown tests.
 
-- [**OrbStack**](https://docs.orbstack.dev/docker/) is the first clean-room
-  candidate. It supplies a Docker engine, Docker CLI, Compose, port forwarding,
-  and Apple Silicon x86 emulation.
+- [**OrbStack**](https://docs.orbstack.dev/docker/) passed the broker, pinned
+  image, health-check, topic-creation, repeat-start, teardown, and host-port
+  tests on this host. It supplies a Docker engine, Docker CLI, Compose, port
+  forwarding, and Apple Silicon x86 emulation. Both headless traffic directions
+  also passed. Final demo support still requires interactive Shapes Demo in a
+  fresh checkout.
 - [**Colima**](https://github.com/abiosoft/colima) is the CLI-first candidate.
   Start it with the Docker runtime and install the Docker client and Compose
   plugin; the containerd runtime does not satisfy the current scripts.
@@ -309,6 +386,7 @@ verify:
 - Kafka connectivity when the broker is already running
 - GUI session availability for Shapes Demo
 - Required runtime library paths
+- RTI-recommended System V shared-memory limits on macOS
 
 Use the platform helper for bounded TCP connectivity and listening-port checks;
 do not add a scripting runtime solely for these probes.
@@ -510,6 +588,7 @@ instructions until they have passed on a clean target system.
 | Mixed ARM64 and x86_64 macOS artifacts | Enforce `arm64`; validate every binary with `file` and `otool` |
 | macOS loader cannot find plugin dependencies | Validate install names and rpaths; pass child-process environment explicitly |
 | GUI process loses environment | Launch Shapes Demo through the controlled process tree and test Terminal/Finder differences |
+| macOS defaults cannot allocate Connext shared-memory resources | Fail prerequisite validation with detected values and link to RTI's administrator procedure |
 | VirtualBox DDS discovery fails across host boundary | Prove all-in-VM behavior first; then test bridged networking or discovery peers |
 | Cross-platform refactor breaks Windows | Run narrow Windows checks after each script change and a final clean-room test |
 | Platform logic becomes duplicated | Keep Windows helpers in `Demo.Common.ps1` and shared Unix helpers in `demo-common.sh` |

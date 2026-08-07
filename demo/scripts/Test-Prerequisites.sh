@@ -88,6 +88,16 @@ if [ -n "${DEMO_CONNEXT_ARCH:-}" ]; then
     fi
 fi
 
+if [ "$DEMO_PLATFORM" = "macOS" ]; then
+    printf '\n=== Connext shared memory ===\n'
+    if demo_macos_shared_memory_ready; then
+        check_ok "macOS System V shared-memory limits ($(demo_macos_shared_memory_values))"
+    else
+        check_fail "macOS System V shared-memory limits" \
+            "Detected $(demo_macos_shared_memory_values); apply RTI's recommendations at https://community.rti.com/kb/osx510 and reboot"
+    fi
+fi
+
 printf '\n=== License ===\n'
 license_file=""
 if [ -n "${RTI_LICENSE_FILE:-}" ] && [ -f "$RTI_LICENSE_FILE" ]; then

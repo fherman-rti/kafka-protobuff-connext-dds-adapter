@@ -3,6 +3,14 @@
 # Shared native helpers for the macOS and Ubuntu demo workflows. Keep this file
 # compatible with the /bin/bash shipped by supported Apple Silicon macOS.
 
+# RTI's recommended minimum macOS System V shared-memory settings. Connext's
+# built-in shared-memory transport is enabled by default, including for the
+# participants created by Distributed Logger and Monitoring Library 2.0.
+DEMO_MACOS_SHMMAX_REQUIRED=419430400
+DEMO_MACOS_SHMMNI_REQUIRED=128
+DEMO_MACOS_SHMSEG_REQUIRED=1024
+DEMO_MACOS_SHMALL_REQUIRED=262144
+
 demo_die() {
     printf 'ERROR: %s\n' "$*" >&2
     exit 1
@@ -67,6 +75,40 @@ demo_require_macos_arm64() {
 
 demo_require_command() {
     command -v "$1" >/dev/null 2>&1 || demo_die "$1 is not available on PATH. $2"
+}
+
+demo_read_macos_shared_memory() {
+    DEMO_MACOS_SHMMAX=$(/usr/sbin/sysctl -n kern.sysv.shmmax 2>/dev/null) || return 1
+    DEMO_MACOS_SHMMNI=$(/usr/sbin/sysctl -n kern.sysv.shmmni 2>/dev/null) || return 1
+    DEMO_MACOS_SHMSEG=$(/usr/sbin/sysctl -n kern.sysv.shmseg 2>/dev/null) || return 1
+    DEMO_MACOS_SHMALL=$(/usr/sbin/sysctl -n kern.sysv.shmall 2>/dev/null) || return 1
+    [ -n "$DEMO_MACOS_SHMMAX" ] && [ -n "$DEMO_MACOS_SHMMNI" ] &&
+        [ -n "$DEMO_MACOS_SHMSEG" ] && [ -n "$DEMO_MACOS_SHMALL" ] || return 1
+    case "$DEMO_MACOS_SHMMAX:$DEMO_MACOS_SHMMNI:$DEMO_MACOS_SHMSEG:$DEMO_MACOS_SHMALL" in
+        *[!0-9:]*) return 1 ;;
+    esac
+}
+
+demo_macos_shared_memory_ready() {
+    demo_read_macos_shared_memory || return 1
+    [ "$DEMO_MACOS_SHMMAX" -ge "$DEMO_MACOS_SHMMAX_REQUIRED" ] &&
+        [ "$DEMO_MACOS_SHMMNI" -ge "$DEMO_MACOS_SHMMNI_REQUIRED" ] &&
+        [ "$DEMO_MACOS_SHMSEG" -ge "$DEMO_MACOS_SHMSEG_REQUIRED" ] &&
+        [ "$DEMO_MACOS_SHMALL" -ge "$DEMO_MACOS_SHMALL_REQUIRED" ]
+}
+
+demo_macos_shared_memory_values() {
+    printf 'shmmax=%s, shmmni=%s, shmseg=%s, shmall=%s' \
+        "${DEMO_MACOS_SHMMAX:-unknown}" "${DEMO_MACOS_SHMMNI:-unknown}" \
+        "${DEMO_MACOS_SHMSEG:-unknown}" "${DEMO_MACOS_SHMALL:-unknown}"
+}
+
+demo_require_macos_shared_memory() {
+    [ "$DEMO_PLATFORM" = "macOS" ] || return 0
+    if demo_macos_shared_memory_ready; then
+        return 0
+    fi
+    demo_die "macOS shared-memory limits are below RTI's recommended minimum ($(demo_macos_shared_memory_values)). Run Test-Prerequisites.sh and follow https://community.rti.com/kb/osx510 before starting the demo."
 }
 
 demo_resolve_connext_dir() {
@@ -167,6 +209,8 @@ demo_require_dir() {
 
 demo_configure_runtime_environment() {
     local current
+    export NDDSHOME=$DEMO_CONNEXT_DIR
+    export CONNEXTDDS_DIR=$DEMO_CONNEXT_DIR
     if [ "$DEMO_RUNTIME_LIBRARY_VARIABLE" = "DYLD_LIBRARY_PATH" ]; then
         current=${DYLD_LIBRARY_PATH:-}
     else

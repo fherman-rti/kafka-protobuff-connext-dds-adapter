@@ -62,7 +62,10 @@ fi
     if command -v cmake >/dev/null 2>&1; then cmake --version | head -n 1; else printf 'cmake=not installed\n'; fi
     if command -v docker >/dev/null 2>&1; then docker --version; else printf 'docker=not installed\n'; fi
     if command -v docker >/dev/null 2>&1; then docker compose version 2>&1 || true; fi
-    if [ "$DEMO_PLATFORM" = "macOS" ] && command -v clang >/dev/null 2>&1; then clang --version | head -n 1; fi
+    if [ "$DEMO_PLATFORM" = "macOS" ]; then
+        /usr/sbin/sysctl kern.sysv.shmmax kern.sysv.shmmni kern.sysv.shmseg kern.sysv.shmall 2>&1 || true
+        command -v clang >/dev/null 2>&1 && clang --version | head -n 1
+    fi
     if [ "$DEMO_PLATFORM" = "Linux" ] && command -v gcc >/dev/null 2>&1; then gcc --version | head -n 1; fi
 } >"$collect_dir/platform-diagnostics.txt" 2>&1
 
