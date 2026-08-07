@@ -49,6 +49,46 @@ PY
     fi
 }
 
+close_inactive_macos_log_windows() {
+    local closed_count
+    [ "$DEMO_PLATFORM" = "macOS" ] || return 0
+
+    # Terminal may retain completed demo log windows depending on the user's
+    # profile setting. Close only inactive windows with titles owned by this
+    # launcher; never touch a busy log viewer or an unrelated Terminal window.
+    /bin/sleep 2
+    closed_count=$(/usr/bin/osascript <<'APPLESCRIPT'
+if application "Terminal" is not running then return 0
+
+tell application "Terminal"
+    set demo_window_ids to {}
+    repeat with demo_window in windows
+        try
+            set demo_name to name of demo_window as text
+            set demo_busy to busy of selected tab of demo_window
+            if demo_busy is false and (demo_name contains "Routing Service" or demo_name contains "Kafka Subscriber (Square)" or demo_name contains "Kafka Publisher (Circle)") then
+                set end of demo_window_ids to id of demo_window
+            end if
+        end try
+    end repeat
+
+    repeat with demo_window_id in demo_window_ids
+        try
+            close window id demo_window_id
+        end try
+    end repeat
+    return count of demo_window_ids
+end tell
+APPLESCRIPT
+    ) || {
+        demo_warn "Could not close inactive macOS demo log windows."
+        return 0
+    }
+    if [ "${closed_count:-0}" -gt 0 ] 2>/dev/null; then
+        demo_info "Closed $closed_count inactive demo log window(s)."
+    fi
+}
+
 if [ -f "$state_file" ]; then
     if [ "$DEMO_PLATFORM" = "Linux" ]; then
         demo_require_command python3 "Ubuntu 22.04 includes Python 3; restore the base package before cleanup."
@@ -92,6 +132,8 @@ if [ -f "$state_file" ]; then
 else
     demo_warn "No demo-state.json found; no demo-owned processes need stopping."
 fi
+
+close_inactive_macos_log_windows
 
 if [ "$skip_kafka" -eq 1 ]; then
     demo_warn "Skipping Kafka shutdown (--skip-kafka)."

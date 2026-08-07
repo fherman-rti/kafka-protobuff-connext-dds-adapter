@@ -213,7 +213,11 @@ show_macos_log() {
     command="printf '\\033]0;%s\\007' '$title'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while kill -0 $pid 2>/dev/null; do sleep 1; done; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; exit"
     escaped=${command//\\/\\\\}
     escaped=${escaped//\"/\\\"}
-    /usr/bin/osascript -e "tell application \"Terminal\" to do script \"$escaped\"" >/dev/null || \
+    /usr/bin/osascript \
+        -e 'tell application "Terminal"' \
+        -e 'activate' \
+        -e "do script \"$escaped\"" \
+        -e 'end tell' >/dev/null || \
         demo_warn "Could not open the $title log in Terminal.app. Logs remain under $DEMO_LOGS_DIR."
 }
 

@@ -152,11 +152,14 @@ RTI's Catalina-and-later `memory.plist` was installed as a root-owned launch
 daemon on this validation host. Before reboot, macOS applied `shmmax=419430400`,
 `shmseg=1024`, and `shmall=262144`, but rejected the live
 `kern.sysv.shmmni=128` write with `Operation not permitted`; System Integrity
-Protection is enabled. The daemon therefore recorded exit code 1, `shmmni`
-remained 32, and stock Shapes still displayed the same QoS error. This is a
-captured pre-reboot state, not a successful validation. After reboot, verify all
-four values and the launch-daemon exit status before retrying Shapes or marking
-the prerequisite complete.
+Protection is enabled. After reboot, all four settings report RTI's recommended
+values: `shmmax=419430400`, `shmmni=128`, `shmseg=1024`, and `shmall=262144`.
+The `shmemsetup` launch daemon reports one run with exit code 0, and the complete
+Unix prerequisite check passes (with only the expected warning that Kafka is
+not yet running). Stock Shapes Demo then started on domain 101 without displaying
+the previous observability QoS error. The macOS shared-memory host prerequisite
+is therefore complete. The subsequent repository-managed interactive run also
+passed as described below.
 
 The Windows launcher uses RTI's `rtishapesdemo.bat` and normal user workspace.
 The macOS launcher starts the wrapper's embedded app executable with equivalent
@@ -188,14 +191,37 @@ successfully. Routing Service currently reports
 Kafka reader is disabled during shutdown; startup and message processing still
 succeed, but this adapter cleanup diagnostic remains to be investigated.
 
-Interactive traffic through Shapes Demo with the documented shared-memory
-settings, Control Center, normal OrbStack CLI installation, and a complete
-fresh-checkout rehearsal remain pending.
+Interactive traffic through Shapes Demo passed on domain 101 with the documented
+shared-memory settings. A Shapes `Circle` subscription displayed varying GREEN
+circles produced through Kafka, and the decoded Kafka subscriber received BLUE
+`Square` samples published from Shapes. Routing Service, Shapes, the publisher,
+and the subscriber remained running with empty error logs during the test. The
+macOS launcher now activates Terminal when it creates the Routing Service,
+Kafka subscriber, and Kafka publisher log viewers. Exactly one active viewer for
+each component was confirmed. Cleanup stopped only the recorded processes,
+closed the three inactive demo log windows without touching unrelated Terminal
+windows, removed the state file, and removed the broker container and Compose
+network. A support bundle for the successful traffic run was captured under
+`demo/logs/collected/20260807-174349.zip`.
+
+The optional Control Center profile also started successfully through the normal
+OrbStack Docker CLI, and its browser console was accessible on host port 9021.
+A complete isolated-checkout rehearsal then passed from commit `7f62275` with
+the current porting diff applied and no prior build or install directories. The
+workflow completed a clean native ARM64 configure, build, install, artifact and
+dependency inspection, and prerequisite check. It started Kafka and Control
+Center, created both topics, served the Control Center UI on port 9021, decoded
+a BLUE `Square` from Shapes on Kafka, and displayed varying GREEN `Circle`
+samples from Kafka in Shapes. All four application error logs remained empty.
+Final cleanup stopped only the recorded processes, closed exactly the three
+inactive demo log windows, and removed both containers and the Compose network.
+The clean-room support bundle is preserved as
+`demo/logs/collected/20260807-175808-fresh-checkout.zip`.
 
 The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
 macOS workflow and the basis for the Ubuntu port. These changes are not final
-installation instructions until the interactive and fresh-checkout clean-room
-runs pass.
+installation instructions for all targets until the Ubuntu and Windows
+clean-room runs pass and tested setup commands are promoted from this plan.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
