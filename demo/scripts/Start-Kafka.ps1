@@ -63,11 +63,23 @@ try {
     }
 
     Write-Host "Verifying topics..." -ForegroundColor Cyan
-    $existingTopics = docker exec $brokerContainer kafka-topics --bootstrap-server localhost:9092 --list
-    foreach ($topic in $topics) {
-        if ($existingTopics -notcontains $topic) {
-            throw "Topic '$topic' was not found after creation. Existing topics: $existingTopics"
+    $topicDeadline = (Get-Date).AddSeconds(30)
+    $missingTopics = $topics
+    do {
+        $existingTopics = @(docker exec $brokerContainer kafka-topics --bootstrap-server localhost:9092 --list)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to list Kafka topics"
         }
+        $missingTopics = @($topics | Where-Object { $existingTopics -notcontains $_ })
+        if ($missingTopics.Count -gt 0 -and (Get-Date) -lt $topicDeadline) {
+            Start-Sleep -Seconds 1
+        }
+    } while ($missingTopics.Count -gt 0 -and (Get-Date) -lt $topicDeadline)
+
+    if ($missingTopics.Count -gt 0) {
+        throw "Topic(s) '$($missingTopics -join "', '")' were not found after creation. Existing topics: $($existingTopics -join ', ')"
+    }
+    foreach ($topic in $topics) {
         Write-Host "  - $topic OK" -ForegroundColor Green
     }
 
