@@ -4,6 +4,9 @@ demo/config/shape_type.pbdesc
 
 # Gateway build/install output
 b/
+b-windows/
+b-macos/
+b-linux/
 rticonnextdds-gateway/build/
 rticonnextdds-gateway/install/
 

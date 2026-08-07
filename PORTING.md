@@ -82,6 +82,39 @@ proven. Windows regression testing follows every shared-script milestone.
 5. Windows regression
 6. Tested installation documentation
 
+## Current macOS Status
+
+Status recorded on 2026-08-07 from an Apple Silicon host running macOS 26.3
+with Connext DDS Professional 7.7.0.
+
+The native source-build feasibility gate is a **go**:
+
+- The installed Connext target is `arm64Darwin23clang16.0`; its Routing
+  Service libraries and Shapes Demo executable report native ARM64.
+- The focused Gateway configuration completed with Apple Clang 21 and
+  `CMAKE_OSX_ARCHITECTURES=arm64`.
+- The Kafka adapter, Protobuf transformation, bundled dependencies,
+  descriptor, publisher, and subscriber built and installed successfully.
+- Every installed library and example executable inspected with `file`
+  reports ARM64.
+- `otool -L` inspection completed for both plugins, and a direct loader probe
+  successfully loaded both plugins together using the planned
+  `DYLD_LIBRARY_PATH` containing the Gateway and Connext library directories.
+
+The initial spike used Unix Makefiles because Ninja and PowerShell 7 are not
+installed on the host. The supported automation still requires those tools;
+the script-driven Ninja build remains to be run after they are available.
+Docker is also not installed, so the Kafka image spike and end-to-end traffic
+tests remain pending. A full Routing Service launch reached Connext startup
+but was stopped by participant-index exhaustion in the current host session;
+that host-state issue is separate from plugin dependency loading and must be
+cleared before the end-to-end phase.
+
+Shared-script work is in progress: `Demo.Common.ps1`, `Build-Gateway.ps1`, and
+`Test-Prerequisites.ps1` now contain the macOS ARM64 platform path while
+preserving the Windows path. These changes are not installation instructions
+until the PowerShell/Ninja workflow and clean-room run pass.
+
 ## Phase 1: Apple Silicon Feasibility Spike
 
 Time-box this phase before refactoring all scripts.
