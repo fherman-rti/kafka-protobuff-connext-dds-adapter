@@ -5,6 +5,10 @@ Routing Service Kafka adapter with RTI Shapes Demo and Protocol Buffers. It
 includes the pinned Gateway source and third-party source needed for the demo.
 You do not need to clone, patch, or maintain another source repository.
 
+Development plans for Apple Silicon macOS and Ubuntu 22.04 x64 in VirtualBox
+are tracked in [PORTING.md](PORTING.md). The instructions below remain the
+tested Windows workflow until those ports pass clean-room validation.
+
 ## Windows clean-room installation
 
 Follow these steps in order on a Windows machine that has not previously run
