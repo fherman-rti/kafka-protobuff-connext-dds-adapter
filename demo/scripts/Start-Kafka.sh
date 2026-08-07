@@ -27,8 +27,8 @@ case "$timeout_seconds" in
     ''|*[!0-9]*) demo_die "--timeout-seconds must be a non-negative integer." ;;
 esac
 
-demo_require_command docker "Install Docker Desktop or Docker Engine."
-docker info >/dev/null 2>&1 || demo_die "The Docker daemon is not reachable. Start Docker and retry."
+demo_require_command docker "Install a Docker-compatible engine, CLI, and Compose v2."
+docker info >/dev/null 2>&1 || demo_die "The Docker-compatible engine is not reachable. Start it and retry."
 docker compose version >/dev/null 2>&1 || demo_die "Docker Compose v2 is required ('docker compose')."
 
 broker_container="kafka-shapes-protobuf-broker"

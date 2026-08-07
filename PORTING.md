@@ -67,7 +67,7 @@ The intended platform matrix is:
 | CMake generator | Visual Studio | Unix Makefiles | Unix Makefiles |
 | Shared library | `.dll` | `.dylib` | `.so` |
 | Runtime library path | `PATH` | `DYLD_LIBRARY_PATH` or rpath | `LD_LIBRARY_PATH` or rpath |
-| Docker runtime | Docker Desktop | Docker Desktop | Docker Engine |
+| Container runtime | Docker Desktop | Docker-compatible macOS runtime | Docker Engine |
 | Connext architecture | Existing Windows value | Discover from install | Discover from install |
 
 Do not guess Connext architecture directory names. Read them from the installed
@@ -137,8 +137,9 @@ Time-box this phase before refactoring all scripts.
 
 ### Environment checks
 
-- Install CMake, Git, Docker Desktop, and Apple command-line developer tools.
-  Use the system `/bin/bash`; PowerShell and Ninja are not required.
+- Install CMake, Git, a Docker-compatible macOS container runtime, and Apple
+  command-line developer tools. Use the system `/bin/bash`; PowerShell and
+  Ninja are not required.
 - Install Connext DDS Professional 7.7.0 for Apple Silicon, including Routing
   Service and Shapes Demo.
 - Confirm a valid license through the installation or `RTI_LICENSE_FILE`.
@@ -200,10 +201,32 @@ docker inspect kafka-shapes-protobuf-broker \
   --format '{{.Platform}}'
 ```
 
-If the image is AMD64-only, document Docker Desktop emulation as an explicit
-runtime exception. Do not introduce x86_64 libraries into the native Gateway
+If the image is AMD64-only, document the selected runtime's emulation as an
+explicit exception. Do not introduce x86_64 libraries into the native Gateway
 build. Before replacing the image, verify compatibility, licensing, startup
 commands, health checks, and Control Center behavior.
+
+### macOS container-runtime candidates
+
+The demo scripts intentionally target the `docker` CLI and Compose v2
+capabilities rather than a specific desktop product. A runtime is supported
+only after it passes the pinned-image, port-forwarding, health-check, topic,
+repeat-start, and teardown tests.
+
+- [**OrbStack**](https://docs.orbstack.dev/docker/) is the first clean-room
+  candidate. It supplies a Docker engine, Docker CLI, Compose, port forwarding,
+  and Apple Silicon x86 emulation.
+- [**Colima**](https://github.com/abiosoft/colima) is the CLI-first candidate.
+  Start it with the Docker runtime and install the Docker client and Compose
+  plugin; the containerd runtime does not satisfy the current scripts.
+- [**Podman Desktop**](https://podman-desktop.io/docs/migrating-from-docker/managing-docker-compatibility)
+  is a compatibility candidate. Enable its Docker socket compatibility and
+  Compose support before running the scripts. Podman behavior must be tested
+  against the Confluent images before it is documented as supported.
+- [**Rancher Desktop**](https://docs.rancherdesktop.io/ui/preferences/container-engine/general/)
+  is a compatibility candidate only when its container engine is `moby`
+  (`dockerd`). Its `containerd`/`nerdctl` mode does not expose the Docker API
+  required by the current scripts.
 
 Phase 1 stops with a written go/no-go result. The critical gate is a native
 ARM64 Gateway build that Routing Service can load.
@@ -307,7 +330,7 @@ Keep `Start-Kafka.ps1` for Windows and use `Start-Kafka.sh` on Unix. Preserve:
 Required checks:
 
 - The script passes `bash -n` with the system Bash on macOS and Ubuntu.
-- Docker Desktop or Docker Engine can pull the pinned image.
+- The selected Docker-compatible engine can pull the pinned image.
 - The broker advertises `localhost:9092` correctly to host processes.
 - Control Center starts on the target architecture or has a documented
   emulation limitation.

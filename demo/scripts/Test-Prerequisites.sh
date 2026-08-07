@@ -158,10 +158,10 @@ docker_ready=0
 if command -v docker >/dev/null 2>&1; then
     check_ok "Docker CLI available"
     if docker info >/dev/null 2>&1; then
-        check_ok "Docker daemon reachable"
+        check_ok "Docker-compatible engine reachable"
         docker_ready=1
     else
-        check_fail "Docker daemon reachable" "Start Docker Desktop or Docker Engine"
+        check_fail "Docker-compatible engine reachable" "Start the selected macOS runtime or Docker Engine"
     fi
     if docker compose version >/dev/null 2>&1; then
         check_ok "Docker Compose v2 available"
@@ -169,7 +169,7 @@ if command -v docker >/dev/null 2>&1; then
         check_fail "Docker Compose v2 available" "Install the docker compose plugin"
     fi
 else
-    check_fail "Docker CLI available" "Install Docker Desktop or Docker Engine"
+    check_fail "Docker CLI available" "Install a Docker-compatible engine, CLI, and Compose v2"
 fi
 
 printf '\n=== Ports ===\n'
