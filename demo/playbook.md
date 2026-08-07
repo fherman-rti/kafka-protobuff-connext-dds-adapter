@@ -34,7 +34,8 @@ Prerequisites (one-time, already completed in this workspace):
 Kafka runs in a container, so Docker Desktop's engine must be running before
 anything else.
 
-1. Launch Docker Desktop and wait for it to report "Engine running".
+1. Launch Docker Desktop and wait for the status in the lower-left corner to
+   report "Engine running".
 2. Confirm from a terminal:
 
    **Shell:** PowerShell 5.1 or PowerShell 7

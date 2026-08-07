@@ -71,8 +71,10 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 & .\demo\scripts\Build-Gateway.ps1
 ```
 
-If Connext is installed somewhere other than
-`C:\Program Files\rti_connext_dds-7.7.0`, specify its location:
+**Do not run the command below if the previous command succeeded.** Only if
+the default installation directory is incorrect and the previous command
+failed because Connext was not found, rerun the script with the actual
+installation location:
 
 ```powershell
 & .\demo\scripts\Build-Gateway.ps1 -ConnextDir "D:\path\to\rti_connext_dds-7.7.0"
@@ -83,8 +85,8 @@ The build is complete when the script prints
 
 ### 4. Start Docker Desktop
 
-Start Docker Desktop from the Windows Start menu and wait until it reports
-that the engine is running.
+Start Docker Desktop from the Windows Start menu and wait until the status in
+the lower-left corner reports that the engine is running.
 
 **Shell:** PowerShell 5.1 or PowerShell 7
 **Working directory:** Any
