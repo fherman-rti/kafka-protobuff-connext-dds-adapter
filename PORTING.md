@@ -23,7 +23,8 @@ playbook.
 - Preserve the two demonstration paths:
   - DDS `Square` to Kafka `Square`
   - Kafka `Circle` to DDS `Circle`
-- Keep one PowerShell 7 orchestration workflow where practical.
+- Use the platform's native automation shell: PowerShell on Windows and Bash
+  on macOS/Ubuntu.
 - Preserve the existing Windows clean-room workflow.
 
 ## Non-goals
@@ -39,8 +40,10 @@ playbook.
 
 ## Porting Strategy
 
-Use PowerShell 7 on all three operating systems. Extract shared platform logic
-into `demo/scripts/Demo.Common.ps1`, then keep platform branches limited to:
+Keep the tested PowerShell scripts for Windows. Use Bash for macOS and Ubuntu,
+with shared Unix platform logic in `demo/scripts/demo-common.sh`. The Unix
+scripts must run with the Bash supplied by macOS; installing PowerShell is not
+a prerequisite. Keep platform branches limited to:
 
 - CMake generator and compiler selection
 - Connext installation and architecture discovery
@@ -49,17 +52,19 @@ into `demo/scripts/Demo.Common.ps1`, then keep platform branches limited to:
 - Interactive terminal and GUI process launch
 - Platform prerequisite checks
 
-Prefer .NET APIs from PowerShell for filesystem, networking, JSON, and process
-operations. This avoids separate calls to Windows, Linux, and macOS utilities
-when a portable API is available.
+On Unix, prefer shell and operating-system utilities that are already present
+on the supported baseline. The macOS path uses `plutil`, `ps`, `lsof`,
+`osascript`, and `ditto`; the Ubuntu branch may use its baseline Python 3 for
+JSON and ZIP handling. Do not add a second scripting-runtime installation just
+for orchestration.
 
 The intended platform matrix is:
 
 | Concern | Windows x64 | macOS ARM64 | Ubuntu 22.04 x64 |
 | --- | --- | --- | --- |
-| PowerShell | 5.1 or 7 | 7 | 7 |
+| Automation shell | PowerShell 5.1 or 7 | System `/bin/bash` | System Bash |
 | Compiler | MSVC | Apple Clang | GCC 11 |
-| CMake generator | Visual Studio | Ninja | Ninja |
+| CMake generator | Visual Studio | Unix Makefiles | Unix Makefiles |
 | Shared library | `.dll` | `.dylib` | `.so` |
 | Runtime library path | `PATH` | `DYLD_LIBRARY_PATH` or rpath | `LD_LIBRARY_PATH` or rpath |
 | Docker runtime | Docker Desktop | Docker Desktop | Docker Engine |
@@ -101,19 +106,30 @@ The native source-build feasibility gate is a **go**:
   successfully loaded both plugins together using the planned
   `DYLD_LIBRARY_PATH` containing the Gateway and Connext library directories.
 
-The initial spike used Unix Makefiles because Ninja and PowerShell 7 are not
-installed on the host. The supported automation still requires those tools;
-the script-driven Ninja build remains to be run after they are available.
-Docker is also not installed, so the Kafka image spike and end-to-end traffic
-tests remain pending. A full Routing Service launch reached Connext startup
-but was stopped by participant-index exhaustion in the current host session;
-that host-state issue is separate from plugin dependency loading and must be
-cleared before the end-to-end phase.
+The native Bash workflow now configures with Unix Makefiles and builds without
+PowerShell or Ninja. `Build-Gateway.sh` completed configure, build, install,
+ARM64 inspection, and dependency inspection on this host. The scripts run with
+the system Bash 3.2 baseline.
 
-Shared-script work is in progress: `Demo.Common.ps1`, `Build-Gateway.ps1`, and
-`Test-Prerequisites.ps1` now contain the macOS ARM64 platform path while
-preserving the Windows path. These changes are not installation instructions
-until the PowerShell/Ninja workflow and clean-room run pass.
+`demo-common.sh` provides the shared macOS/Ubuntu foundation. Native Bash entry
+points now exist for prerequisite checking, building, Kafka startup, demo
+startup, owned-process cleanup, and support-bundle collection. The macOS
+prerequisite run passed platform, Connext, license, toolchain, artifact,
+dependency, runtime-path, port, and GUI checks. Its only failure was the absent
+Docker installation. ZIP support-bundle generation and stale-state cleanup
+were also exercised successfully.
+
+Docker is not installed, so the Kafka image spike and end-to-end traffic tests
+remain pending. A prior Routing Service launch reached Connext startup but was
+stopped by participant-index exhaustion in the current host session; that
+host-state issue is separate from plugin dependency loading and must be cleared
+before the end-to-end phase. The new process launcher and live PID-ownership
+path have not been executed in this restricted development session because
+process-table access is outside the repository-only permission profile.
+
+The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
+macOS workflow and the basis for the Ubuntu port. These changes are not final
+installation instructions until Docker and clean-room end-to-end runs pass.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
@@ -121,8 +137,8 @@ Time-box this phase before refactoring all scripts.
 
 ### Environment checks
 
-- Install PowerShell 7, CMake, Ninja, Git, Docker Desktop, and Apple command-line
-  developer tools.
+- Install CMake, Git, Docker Desktop, and Apple command-line developer tools.
+  Use the system `/bin/bash`; PowerShell and Ninja are not required.
 - Install Connext DDS Professional 7.7.0 for Apple Silicon, including Routing
   Service and Shapes Demo.
 - Confirm a valid license through the installation or `RTI_LICENSE_FILE`.
@@ -145,19 +161,7 @@ Expected host architecture: `arm64`.
 Configure a clean native ARM64 build without changing the Windows build:
 
 ```bash
-cmake -S rticonnextdds-gateway -B b-macos -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 \
-  -DCONNEXTDDS_DIR="$NDDSHOME" \
-  -DCONNEXTDDS_ARCH="<verified-installed-architecture>" \
-  -DCMAKE_INSTALL_PREFIX="$PWD/rticonnextdds-gateway/install" \
-  -DRTIGATEWAY_ENABLE_ALL=OFF \
-  -DRTIGATEWAY_ENABLE_KAFKA=ON \
-  -DRTIGATEWAY_ENABLE_TSFM_PROTOBUF=ON \
-  -DRTIGATEWAY_ENABLE_EXAMPLES=ON \
-  -DRTIGATEWAY_ENABLE_PROTOBUF_BUILD=ON \
-  -DRTIGATEWAY_ENABLE_TESTS=OFF
-cmake --build b-macos --target install
+./demo/scripts/Build-Gateway.sh
 ```
 
 Inspect every produced plugin, dependency, and example executable:
@@ -190,7 +194,7 @@ docker image inspect confluentinc/cp-kafka:7.6.1 \
 Then run the existing Compose service and inspect the resulting container:
 
 ```bash
-Set-Location demo/docker
+cd demo/docker
 docker compose up -d broker
 docker inspect kafka-shapes-protobuf-broker \
   --format '{{.Platform}}'
@@ -206,7 +210,8 @@ ARM64 Gateway build that Routing Service can load.
 
 ## Phase 2: Shared Script Foundation
 
-Create `demo/scripts/Demo.Common.ps1` with focused helpers for:
+Keep `Demo.Common.ps1` for the Windows workflow. Use
+`demo/scripts/demo-common.sh` for shared macOS/Ubuntu helpers covering:
 
 - OS and CPU architecture detection
 - Supported-platform validation
@@ -222,21 +227,22 @@ Create `demo/scripts/Demo.Common.ps1` with focused helpers for:
 Reject Intel macOS early and clearly. Do not reject x64 Ubuntu or the existing
 Windows target.
 
-Update scripts incrementally:
+The native Unix entry points are:
 
-1. `Build-Gateway.ps1`
-2. `Test-Prerequisites.ps1`
-3. `Start-Kafka.ps1`
-4. `Start-Demo.ps1`
-5. `Stop-Demo.ps1`
-6. `Collect-Logs.ps1`
+1. `Build-Gateway.sh`
+2. `Test-Prerequisites.sh`
+3. `Start-Kafka.sh`
+4. `Start-Demo.sh`
+5. `Stop-Demo.sh`
+6. `Collect-Logs.sh`
 
 After each shared-script change, run the narrow Windows check that covers the
 modified behavior.
 
 ## Phase 3: Cross-platform Build Script
 
-Update `Build-Gateway.ps1` to select platform build settings:
+Use `Build-Gateway.ps1` for Windows and `Build-Gateway.sh` for Unix platform
+build settings:
 
 ### Windows
 
@@ -246,8 +252,8 @@ Update `Build-Gateway.ps1` to select platform build settings:
 
 ### macOS
 
-- Require PowerShell 7 and ARM64.
-- Use Ninja and Apple Clang.
+- Require a native ARM64 shell process.
+- Use Unix Makefiles and Apple Clang.
 - Set `CMAKE_OSX_ARCHITECTURES=arm64`.
 - Use the verified Connext installation and architecture.
 - Check `.dylib` plugins and extensionless example executables.
@@ -255,8 +261,8 @@ Update `Build-Gateway.ps1` to select platform build settings:
 
 ### Ubuntu
 
-- Require PowerShell 7 and x64.
-- Use Ninja and GCC.
+- Require x64.
+- Use Unix Makefiles and GCC.
 - Use the verified Connext installation and architecture.
 - Check `.so` plugins and extensionless example executables.
 - Use `ldd` to reject unresolved dependencies.
@@ -267,12 +273,13 @@ install layout beneath `rticonnextdds-gateway/install` on each machine.
 
 ## Phase 4: Cross-platform Prerequisite Checks
 
-Update `Test-Prerequisites.ps1` to verify:
+Use `Test-Prerequisites.ps1` on Windows and `Test-Prerequisites.sh` on Unix to
+verify:
 
 - Supported OS and CPU architecture
-- PowerShell version
+- The supported native shell and process architecture
 - Connext directory, architecture libraries, launchers, and license
-- Compiler, CMake, and Ninja
+- Compiler, CMake, and Make
 - Installed Gateway artifacts for the current platform
 - Docker CLI, daemon, and Compose v2
 - Ports 9092 and 9021
@@ -280,17 +287,17 @@ Update `Test-Prerequisites.ps1` to verify:
 - GUI session availability for Shapes Demo
 - Required runtime library paths
 
-Use `System.Net.Sockets` for portable port checks rather than
-`Get-NetTCPConnection`, `ss`, or `lsof` where practical.
+Use the platform helper for bounded TCP connectivity and listening-port checks;
+do not add a scripting runtime solely for these probes.
 
-Keep the existing behavior in which an absent broker is a warning before
-`Start-Kafka.ps1` runs.
+Keep the existing behavior in which an absent broker is a warning before the
+platform's `Start-Kafka` script runs.
 
 ## Phase 5: Kafka Startup
 
-`Start-Kafka.ps1` is already mostly portable. Preserve:
+Keep `Start-Kafka.ps1` for Windows and use `Start-Kafka.sh` on Unix. Preserve:
 
-- `Push-Location` and `Pop-Location`
+- Running Compose from `demo/docker` without leaving the caller in that directory
 - `docker compose` startup
 - Broker health polling
 - Explicit `Square` and `Circle` creation
@@ -299,7 +306,7 @@ Keep the existing behavior in which an absent broker is a warning before
 
 Required checks:
 
-- PowerShell 7 parses the script on macOS and Ubuntu.
+- The script passes `bash -n` with the system Bash on macOS and Ubuntu.
 - Docker Desktop or Docker Engine can pull the pinned image.
 - The broker advertises `localhost:9092` correctly to host processes.
 - Control Center starts on the target architecture or has a documented
@@ -307,8 +314,9 @@ Required checks:
 
 ## Phase 6: Demo Process Orchestration
 
-Update `Start-Demo.ps1` to use platform-specific executable names and runtime
-library paths while preserving the current demo sequence.
+Keep `Start-Demo.ps1` for Windows and use `Start-Demo.sh` for platform-specific
+Unix executable names and runtime-library paths while preserving the current
+demo sequence.
 
 Shared behavior:
 
@@ -326,10 +334,10 @@ For the first Unix implementation, support two modes:
 - Interactive presenter mode, with visible terminal windows and Shapes Demo
 - Headless validation mode, without terminal-window dependencies
 
-Implement macOS interactive launch through a tested Terminal.app or PowerShell
-process strategy. Implement Ubuntu interactive launch only after the behavior
-works inside the VM desktop. Keep process ownership independent of terminal
-window titles.
+Implement macOS interactive launch through Terminal.app log views while the
+native child processes remain directly owned by the startup shell. Implement
+Ubuntu interactive launch only after the behavior works inside the VM desktop.
+Keep process ownership independent of terminal window titles.
 
 Do not depend on shell profile files to set library paths. Supply the required
 environment directly to each child process. Prefer installed rpaths where the
@@ -338,16 +346,17 @@ build supports them reliably; otherwise set `DYLD_LIBRARY_PATH` on macOS and
 
 ## Phase 7: Stop And Log Collection
 
-Update `Stop-Demo.ps1` to:
+Keep `Stop-Demo.ps1` for Windows. Update `Stop-Demo.sh` on Unix to:
 
-- Read only the PIDs recorded by `Start-Demo.ps1`.
+- Read only the PIDs recorded by `Start-Demo.sh`.
 - Verify a process still corresponds to the expected demo component before
   stopping it when practical.
 - Attempt graceful termination before forced termination.
-- Preserve `-SkipKafka`.
+- Preserve `-SkipKafka` on Windows and `--skip-kafka` on Unix.
 - Run Compose teardown from `demo/docker` on every platform.
 
-Update `Collect-Logs.ps1` to preserve a common support bundle containing:
+Keep `Collect-Logs.ps1` for Windows. Use `Collect-Logs.sh` on Unix to preserve a
+common support bundle containing:
 
 - Routing Service log
 - Publisher and subscriber logs
@@ -401,8 +410,10 @@ Clone and build on the VM's native Linux filesystem, not a VirtualBox shared
 folder. Shared folders can introduce permission, symlink, and case-sensitivity
 differences.
 
-Install PowerShell 7, CMake, Ninja, GCC, Git, Docker Engine, Compose v2, and
-the Linux x64 Connext DDS Professional 7.7.0 distribution.
+Install CMake, Make, GCC, Git, Docker Engine, Compose v2, and the Linux x64
+Connext DDS Professional 7.7.0 distribution. Ubuntu's system Bash and Python 3
+provide the orchestration and JSON/ZIP support; PowerShell and Ninja are not
+required.
 
 Add the VM user to the Docker group and verify Docker without `sudo` after a
 new login.
@@ -478,7 +489,7 @@ instructions until they have passed on a clean target system.
 | GUI process loses environment | Launch Shapes Demo through the controlled process tree and test Terminal/Finder differences |
 | VirtualBox DDS discovery fails across host boundary | Prove all-in-VM behavior first; then test bridged networking or discovery peers |
 | Cross-platform refactor breaks Windows | Run narrow Windows checks after each script change and a final clean-room test |
-| Platform logic becomes duplicated | Keep platform metadata and helpers in `Demo.Common.ps1` |
+| Platform logic becomes duplicated | Keep Windows helpers in `Demo.Common.ps1` and shared Unix helpers in `demo-common.sh` |
 
 ## Completion Definition
 
