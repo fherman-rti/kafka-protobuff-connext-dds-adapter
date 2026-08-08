@@ -219,9 +219,10 @@ The clean-room support bundle is preserved as
 `demo/logs/collected/20260807-175808-fresh-checkout.zip`.
 
 The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
-macOS workflow and the basis for the Ubuntu port. These changes are not final
-installation instructions for all targets until the Ubuntu and Windows
-clean-room runs pass and tested setup commands are promoted from this plan.
+macOS workflow and the basis for the Ubuntu port. The tested macOS setup and
+demo commands have been promoted to [MACOS.md](MACOS.md). This document remains
+the engineering record and plan for the unfinished Ubuntu and Windows
+regression work.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
@@ -590,7 +591,9 @@ The two message directions must still pass.
 
 ## Documentation Deliverables
 
-After each target passes clean-room testing:
+The tested Apple Silicon workflow is published separately in
+[MACOS.md](MACOS.md). For the remaining targets, after each target passes
+clean-room testing:
 
 - Add tested prerequisites and installation commands to `README.md`.
 - Keep OS-specific installation sections separate.

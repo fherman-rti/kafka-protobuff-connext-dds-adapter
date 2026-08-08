@@ -1,8 +1,11 @@
-# Kafka + Protobuf Shapes Demo - Playbook
+# Kafka + Protobuf Shapes Demo - Windows Playbook
 
 Step-by-step instructions for running the customer-facing demo: RTI Routing
 Service bridging DDS Shapes traffic to/from Kafka, with Protocol Buffers
 serialization in between.
+
+For Apple Silicon macOS, use the separate tested
+[macOS clean-room installation and demo guide](../MACOS.md).
 
 All command blocks use **PowerShell 5.1 or PowerShell 7**. Do not use Command
 Prompt (`cmd.exe`) for these commands. Unless a step explicitly says

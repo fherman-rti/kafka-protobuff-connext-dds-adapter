@@ -5,9 +5,14 @@ Routing Service Kafka adapter with RTI Shapes Demo and Protocol Buffers. It
 includes the pinned Gateway source and third-party source needed for the demo.
 You do not need to clone, patch, or maintain another source repository.
 
-Development plans for Apple Silicon macOS and Ubuntu 22.04 x64 in VirtualBox
-are tracked in [PORTING.md](PORTING.md). The instructions below remain the
-tested Windows workflow until those ports pass clean-room validation.
+Use the platform-specific clean-room instructions:
+
+- [Apple Silicon macOS installation and demo](MACOS.md)
+- [Windows installation](#windows-clean-room-installation), followed by the
+  [Windows demo playbook](demo/playbook.md)
+
+The implementation history and remaining Ubuntu 22.04 x64 work are tracked in
+[PORTING.md](PORTING.md).
 
 ## Windows clean-room installation
 
@@ -350,8 +355,10 @@ machine requires its own prerequisite and clean-start validation.
 
 ## Clean-room validation instructions
 
-Use the [Windows clean-room installation](#windows-clean-room-installation) at
-the beginning of this README for a new machine or a fresh clone.
+For a new machine or fresh clone, use the
+[Apple Silicon macOS clean-room guide](MACOS.md) or the
+[Windows clean-room installation](#windows-clean-room-installation) for the
+target platform.
 
 ### Reset an existing installation
 
