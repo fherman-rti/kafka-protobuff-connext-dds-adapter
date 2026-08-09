@@ -206,9 +206,10 @@ Kafka broker ready at localhost:9092 with topics: Square, Circle
 Control Center available at http://localhost:9021
 ```
 
-Open <http://localhost:9021>, select the cluster, and open
-**Topics**. Control Center can show topic activity, but it does not decode this
-demo's raw Protobuf payloads; use the native subscriber window for decoded
+The Control Center web console can take up to 10 seconds after this message to
+become available. Then open <http://localhost:9021>, select the cluster, and
+open **Topics**. Control Center can show topic activity, but it does not decode
+this demo's raw Protobuf payloads; use the native subscriber window for decoded
 values.
 
 If port `9021` is unavailable and the browser view is not required, start only
