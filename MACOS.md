@@ -20,17 +20,21 @@ declared minimum versions.
 
 ## 1. Install the host prerequisites
 
-Install these products before cloning the repository:
+Install these products before cloning the repository. The numbered workflow
+below assumes the standard Connext installation at
+`/Applications/rti_connext_dds-7.7.0`; its commands are ready to copy and paste
+without editing paths or arguments.
 
-- RTI Connext DDS Professional 7.7.0 for Apple Silicon, including Routing
-  Service and Shapes Demo.
+- RTI Connext DDS Professional 7.7.0 for Apple Silicon, installed at
+  `/Applications/rti_connext_dds-7.7.0` and including Routing Service and
+  Shapes Demo.
 - A valid Connext license. Place `rti_license.dat` in the Connext installation
-  directory or set `RTI_LICENSE_FILE` to its full path.
+  directory.
 - Apple's Command Line Tools, which provide Apple Clang, Make, and Git.
 - CMake 3.10 or newer, with `cmake` available on `PATH`.
-- A Docker-compatible macOS runtime that provides the `docker` CLI, a running
-  Docker engine, and `docker compose` v2. OrbStack is the runtime validated by
-  the clean-room rehearsal.
+- [OrbStack](https://docs.orbstack.dev/quick-start), the recommended and
+  validated container runtime for this workflow. It provides the Docker
+  engine, `docker` CLI, and `docker compose` v2 required by the demo.
 
 Open a normal ARM64 Terminal window, not a shell running through Rosetta. Use
 this command if the Apple Command Line Tools are not installed:
@@ -49,22 +53,20 @@ git --version
 cmake --version
 clang --version
 make --version
+orb version
+test -d /Applications/rti_connext_dds-7.7.0
+test -f /Applications/rti_connext_dds-7.7.0/rti_license.dat
 ```
 
-Both `uname -m` and `arch` must print `arm64`.
-
-If the license is not in the Connext installation directory, export its full
-path in every Terminal session used for the demo:
-
-```bash
-export RTI_LICENSE_FILE=/full/path/to/rti_license.dat
-```
+Both `uname -m` and `arch` must print `arm64`. The two `test` commands must
+exit without printing an error.
 
 The scripts automatically select Connext when it is installed at
 `/Applications/rti_connext_dds-7.7.0`. A different installation is supported;
-pass its path with `--connext-dir` in the build, prerequisite, and demo commands
-shown below. If more than one matching ARM64 target is installed, also pass the
-verified target name with `--connext-arch`.
+run each script with `--help` and pass its actual path with `--connext-dir`. If
+more than one matching ARM64 target is installed, also pass the verified target
+name with `--connext-arch`. Those non-standard arguments are not part of the
+copy-and-paste workflow below.
 
 ## 2. Configure macOS shared memory and reboot
 
@@ -133,24 +135,18 @@ and subscriber beneath `rticonnextdds-gateway/install`.
 The build is complete when it prints `Gateway build and installation
 completed`. Do not continue after an error.
 
-If the previous command succeeds, **SKIP to section 5**.
+**SKIP to section 5** if the previous command succeeds.
 
-If Connext is installed somewhere else, specify the actual directory:
-
-```bash
-./demo/scripts/Build-Gateway.sh \
-  --connext-dir /Applications/path/to/rti_connext_dds-7.7.0
-```
-
-Only when architecture discovery reports more than one target, inspect the
-installed directories and pass the correct ARM64 name:
+Only when architecture discovery reports more than one target in the standard
+installation, inspect the installed directories and pass the validated ARM64
+name explicitly:
 
 ```bash
-find /Applications/path/to/rti_connext_dds-7.7.0/lib \
+find /Applications/rti_connext_dds-7.7.0/lib \
   -maxdepth 1 -type d -name 'arm64Darwin*'
 
 ./demo/scripts/Build-Gateway.sh \
-  --connext-dir /Applications/path/to/rti_connext_dds-7.7.0 \
+  --connext-dir /Applications/rti_connext_dds-7.7.0 \
   --connext-arch arm64Darwin23clang16.0
 ```
 
@@ -160,8 +156,7 @@ identical.
 
 ## 5. Start the container runtime and validate the installation
 
-Start the selected container runtime and wait for its engine to become ready.
-For OrbStack, run:
+Start OrbStack and wait for its engine to become ready:
 
 ```bash
 orb start
@@ -184,41 +179,44 @@ All three commands must succeed. Then run the complete repository check:
 Continue only when it ends with `Prerequisite check PASSED.` A warning that
 Kafka is not reachable is expected because the broker starts in the next step.
 
-If the previous command succeeds, **SKIP to section 6**.
+**SKIP to section 6** if the previous command succeeds.
 
-For a non-default Connext installation, use the same selection as the build:
+If the prerequisite check reports ambiguous architecture discovery in the
+standard installation, use the same explicit selection as the build:
 
 ```bash
 ./demo/scripts/Test-Prerequisites.sh \
-  --connext-dir /Applications/path/to/rti_connext_dds-7.7.0 \
+  --connext-dir /Applications/rti_connext_dds-7.7.0 \
   --connext-arch arm64Darwin23clang16.0
 ```
 
 ## 6. Start Kafka
 
-Start the pinned single-broker Kafka environment and create the `Square` and
-`Circle` topics:
-
-```bash
-./demo/scripts/Start-Kafka.sh
-```
-
-The broker is ready when the script prints:
-
-```text
-Kafka broker ready at localhost:9092 with topics: Square, Circle
-```
-
-For the optional browser view, start Control Center with the broker instead:
+Start the pinned single-broker Kafka environment with Control Center and create
+the `Square` and `Circle` topics:
 
 ```bash
 ./demo/scripts/Start-Kafka.sh --with-control-center
 ```
 
-When it is ready, open <http://localhost:9021>, select the cluster, and open
+The environment is ready when the script prints:
+
+```text
+Kafka broker ready at localhost:9092 with topics: Square, Circle
+Control Center available at http://localhost:9021
+```
+
+Open <http://localhost:9021>, select the cluster, and open
 **Topics**. Control Center can show topic activity, but it does not decode this
 demo's raw Protobuf payloads; use the native subscriber window for decoded
 values.
+
+If port `9021` is unavailable and the browser view is not required, start only
+the broker instead:
+
+```bash
+./demo/scripts/Start-Kafka.sh
+```
 
 ## 7. Run the interactive demonstration
 
@@ -252,16 +250,6 @@ Leave that prompt waiting while performing the first two actions:
 
 Routing Service, Shapes Demo, the publisher, and the subscriber continue to run
 after the launcher returns. Their output is also written under `demo/logs`.
-
-If the default Connext location could not be used, pass the same selection to
-the launcher:
-
-```bash
-./demo/scripts/Start-Demo.sh \
-  --connext-dir /Applications/path/to/rti_connext_dds-7.7.0 \
-  --connext-arch arm64Darwin23clang16.0 \
-  --domain-id 101
-```
 
 ### Optional headless smoke run
 
@@ -320,8 +308,8 @@ dependency information. Then run `Stop-Demo.sh`.
 | The script rejects `x86_64` or reports Rosetta | Open a native ARM64 Terminal and confirm both `uname -m` and `arch` print `arm64`. |
 | Shared-memory prerequisite fails | Follow RTI's linked procedure, reboot, and confirm all four `sysctl` values meet the table above. Do not disable Connext observability as a workaround. |
 | `docker` or `docker compose` is not found | Enable the selected runtime's normal Docker CLI integration, open a new Terminal, and rerun the three Docker checks. Repository scripts do not install or patch the runtime. |
-| Docker engine is unreachable | Start the runtime and wait until `docker info` succeeds. |
-| Port `9092` or `9021` is occupied | Stop the other service or previous Compose project before starting this demo. Control Center is optional if only `9021` is unavailable. |
+| Docker engine is unreachable | Run `orb start` and wait until `docker info` succeeds. |
+| Port `9092` or `9021` is occupied | Stop the other service or previous Compose project before starting this demo. If only `9021` is unavailable, use the documented broker-only startup. |
 | Connext selection is ambiguous | Pass the verified `--connext-dir` and `--connext-arch` values consistently to the build, prerequisite, and demo scripts. |
 | `demo-state.json` already exists | Run `./demo/scripts/Stop-Demo.sh`; it validates process ownership before stopping anything. |
 | Routing Service reports a loaned octet-sequence buffer error during shutdown | This known adapter cleanup diagnostic occurs while the Kafka reader is being disabled; it did not prevent startup or message processing in validation. Capture logs if it occurs at any other time. |
