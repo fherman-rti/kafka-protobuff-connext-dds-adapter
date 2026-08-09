@@ -135,7 +135,7 @@ and subscriber beneath `rticonnextdds-gateway/install`.
 The build is complete when it prints `Gateway build and installation
 completed`. Do not continue after an error.
 
-**SKIP to section 5** if the previous command succeeds.
+<u>**SKIP to section 5** if the previous command succeeds.</u>
 
 Only when architecture discovery reports more than one target in the standard
 installation, inspect the installed directories and pass the validated ARM64
@@ -179,7 +179,7 @@ All three commands must succeed. Then run the complete repository check:
 Continue only when it ends with `Prerequisite check PASSED.` A warning that
 Kafka is not reachable is expected because the broker starts in the next step.
 
-**SKIP to section 6** if the previous command succeeds.
+<u>**SKIP to section 6** if the previous command succeeds.</u>
 
 If the prerequisite check reports ambiguous architecture discovery in the
 standard installation, use the same explicit selection as the build:
