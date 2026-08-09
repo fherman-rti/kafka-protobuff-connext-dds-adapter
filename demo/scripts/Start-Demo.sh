@@ -93,7 +93,10 @@ rs_pid=""; rs_marker=""; rs_path=""
 sub_pid=""; sub_marker=""; sub_path=""
 pub_pid=""; pub_marker=""; pub_path=""
 shapes_pid=""; shapes_marker=""; shapes_path=""
-publisher_viewer_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-viewer-$$.pid"
+publisher_start_file="$DEMO_LOGS_DIR/.kafka-publisher-start-$$"
+publisher_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-$$.pid"
+publisher_prompt_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-prompt-$$.pid"
+publisher_prompt_pid=""
 startup_complete=0
 
 add_process_to_plist() {
@@ -223,13 +226,20 @@ show_macos_log() {
 }
 
 show_staged_macos_publisher_log() {
-    local title launcher_pid pid_file stdout_file stderr_file
-    local quoted_pid_file quoted_out quoted_err command escaped
-    title=$1; launcher_pid=$2; pid_file=$3; stdout_file=$4; stderr_file=$5
+    local title launcher_pid start_file pid_file prompt_pid_file
+    local stdout_file stderr_file prompt prompt_deadline
+    local quoted_start_file quoted_pid_file quoted_prompt_pid_file
+    local quoted_prompt_pid_tmp quoted_out quoted_err quoted_prompt command escaped
+    title=$1; launcher_pid=$2; start_file=$3; pid_file=$4
+    prompt_pid_file=$5; stdout_file=$6; stderr_file=$7; prompt=$8
+    printf -v quoted_start_file '%q' "$start_file"
     printf -v quoted_pid_file '%q' "$pid_file"
+    printf -v quoted_prompt_pid_file '%q' "$prompt_pid_file"
+    printf -v quoted_prompt_pid_tmp '%q' "$prompt_pid_file.tmp"
     printf -v quoted_out '%q' "$stdout_file"
     printf -v quoted_err '%q' "$stderr_file"
-    command="printf '\\033]0;%s\\007' '$title'; printf '%s\\n' 'Publisher staged. Press Enter in the original Terminal window to start.'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; rm -f $quoted_pid_file; exit"
+    printf -v quoted_prompt '%q' "$prompt"
+    command="printf '%s\\n' \$\$ > $quoted_prompt_pid_tmp; mv $quoted_prompt_pid_tmp $quoted_prompt_pid_file; /usr/bin/clear; printf '\\033]0;%s\\007' '$title'; printf '%s' $quoted_prompt; while kill -0 $launcher_pid 2>/dev/null; do if IFS= read -r -t 1 demo_reply; then : > $quoted_start_file; break; fi; done; if [ ! -e $quoted_start_file ]; then rm -f $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit; fi; printf '\\nStarting publisher...\\n'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; rm -f $quoted_start_file $quoted_pid_file $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit"
     escaped=${command//\\/\\\\}
     escaped=${escaped//\"/\\\"}
     if ! /usr/bin/osascript \
@@ -238,6 +248,26 @@ show_staged_macos_publisher_log() {
         -e "do script \"$escaped\"" \
         -e 'end tell' >/dev/null; then
         demo_warn "Could not open the staged publisher log in Terminal.app. Logs remain under $DEMO_LOGS_DIR."
+        return 1
+    fi
+
+    prompt_deadline=$((SECONDS + 10))
+    while [ ! -s "$prompt_pid_file" ] && [ "$SECONDS" -lt "$prompt_deadline" ]; do
+        sleep 0.1
+    done
+    if [ ! -s "$prompt_pid_file" ]; then
+        demo_warn "The staged publisher window did not become ready."
+        return 1
+    fi
+    IFS= read -r publisher_prompt_pid <"$prompt_pid_file"
+    case "$publisher_prompt_pid" in
+        ''|*[!0-9]*)
+            demo_warn "The staged publisher window reported an invalid process ID."
+            return 1
+            ;;
+    esac
+    if ! kill -0 "$publisher_prompt_pid" 2>/dev/null; then
+        demo_warn "The staged publisher window exited before becoming ready."
         return 1
     fi
 }
@@ -279,7 +309,11 @@ cleanup_failed_start() {
         [ -n "$shapes_pid" ] && demo_stop_owned_process "$shapes_pid" "$shapes_marker" "$shapes_path" 2
         [ -n "$sub_pid" ] && demo_stop_owned_process "$sub_pid" "$sub_marker" "$sub_path" 2
         [ -n "$rs_pid" ] && demo_stop_owned_process "$rs_pid" "$rs_marker" "$rs_path" 2
-        rm -f "$publisher_viewer_pid_file" "$publisher_viewer_pid_file.tmp" "$state_file"
+        rm -f \
+            "$publisher_start_file" \
+            "$publisher_pid_file" "$publisher_pid_file.tmp" \
+            "$publisher_prompt_pid_file" "$publisher_prompt_pid_file.tmp" \
+            "$state_file"
         set -e
     fi
     return "$status"
@@ -307,11 +341,16 @@ if [ "$show_logs" -eq 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
     publisher_stderr_file="$DEMO_LOGS_DIR/kafka_publisher.error.log"
     : >"$publisher_stdout_file"
     : >"$publisher_stderr_file"
-    rm -f "$publisher_viewer_pid_file" "$publisher_viewer_pid_file.tmp"
+    rm -f \
+        "$publisher_start_file" \
+        "$publisher_pid_file" "$publisher_pid_file.tmp" \
+        "$publisher_prompt_pid_file" "$publisher_prompt_pid_file.tmp"
     if show_staged_macos_publisher_log \
-        "Kafka Publisher (Circle) - press Enter in original Terminal" \
-        "$$" "$publisher_viewer_pid_file" \
-        "$publisher_stdout_file" "$publisher_stderr_file"; then
+        "Kafka Publisher (Circle) - press Enter to start" \
+        "$$" "$publisher_start_file" "$publisher_pid_file" \
+        "$publisher_prompt_pid_file" \
+        "$publisher_stdout_file" "$publisher_stderr_file" \
+        "Press Enter to start publishing $circle_color circles to Kafka topic Circle: "; then
         publisher_log_staged=1
     fi
 fi
@@ -336,8 +375,18 @@ fi
 
 if [ "$headless" -ne 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
     demo_info "In Shapes Demo, subscribe to Circle and publish a BLUE Square."
-    printf 'Press Enter here when ready to publish %s circles to Kafka topic Circle: ' "$circle_color"
-    IFS= read -r _
+    if [ "$publisher_log_staged" -eq 1 ]; then
+        demo_info "Then switch to the Kafka Publisher (Circle) window and press Enter."
+        while [ ! -e "$publisher_start_file" ]; do
+            if ! kill -0 "$publisher_prompt_pid" 2>/dev/null; then
+                demo_die "The staged Kafka publisher window was closed before Enter was pressed."
+            fi
+            sleep 0.2
+        done
+    else
+        printf 'Press Enter here when ready to publish %s circles to Kafka topic Circle: ' "$circle_color"
+        IFS= read -r _
+    fi
 fi
 
 demo_info "Starting Kafka publisher for '$circle_color' circles on topic 'Circle'..."
@@ -347,8 +396,8 @@ start_logged_component kafkaPublisher "Kafka Publisher (Circle)" "$DEMO_PUBLISHE
     "$bootstrap_servers" "$circle_color" Circle
 pub_pid=$DEMO_LAST_PID
 if [ "$publisher_log_staged" -eq 1 ]; then
-    printf '%s\n' "$pub_pid" >"$publisher_viewer_pid_file.tmp"
-    mv "$publisher_viewer_pid_file.tmp" "$publisher_viewer_pid_file"
+    printf '%s\n' "$pub_pid" >"$publisher_pid_file.tmp"
+    mv "$publisher_pid_file.tmp" "$publisher_pid_file"
 fi
 
 write_state

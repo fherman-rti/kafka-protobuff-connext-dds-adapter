@@ -229,11 +229,11 @@ rehearsal:
 
 The launcher creates all four demonstration windows at startup: Shapes Demo
 plus Terminal viewers for Routing Service, the decoded Kafka `Square`
-subscriber, and the staged Kafka `Circle` publisher. It then pauses in the
-original Terminal at this prompt:
+subscriber, and the staged Kafka `Circle` publisher. The publisher window waits
+at this prompt:
 
 ```text
-Press Enter here when ready to publish GREEN circles to Kafka topic Circle:
+Press Enter to start publishing GREEN circles to Kafka topic Circle:
 ```
 
 Leave that prompt waiting while performing the first two actions:
@@ -243,8 +243,8 @@ Leave that prompt waiting while performing the first two actions:
    The **Kafka Subscriber (Square)** log should begin printing decoded BLUE
    samples with `color`, `x`, `y`, and `shapesize` fields. This proves the
    DDS-to-Protobuf-to-Kafka path.
-3. Return to the original Terminal and press **Enter**. The launcher starts the
-   Kafka `Circle` publisher, and its already-open viewer begins showing output.
+3. Switch to the **Kafka Publisher (Circle)** window and press **Enter**. The
+   launcher starts the Kafka `Circle` publisher in that window.
 4. Watch Shapes Demo display moving GREEN circles. This proves the
    Kafka-to-Protobuf-to-DDS path.
 
