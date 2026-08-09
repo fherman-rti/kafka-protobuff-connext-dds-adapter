@@ -93,6 +93,7 @@ rs_pid=""; rs_marker=""; rs_path=""
 sub_pid=""; sub_marker=""; sub_path=""
 pub_pid=""; pub_marker=""; pub_path=""
 shapes_pid=""; shapes_marker=""; shapes_path=""
+publisher_viewer_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-viewer-$$.pid"
 startup_complete=0
 
 add_process_to_plist() {
@@ -221,6 +222,26 @@ show_macos_log() {
         demo_warn "Could not open the $title log in Terminal.app. Logs remain under $DEMO_LOGS_DIR."
 }
 
+show_staged_macos_publisher_log() {
+    local title launcher_pid pid_file stdout_file stderr_file
+    local quoted_pid_file quoted_out quoted_err command escaped
+    title=$1; launcher_pid=$2; pid_file=$3; stdout_file=$4; stderr_file=$5
+    printf -v quoted_pid_file '%q' "$pid_file"
+    printf -v quoted_out '%q' "$stdout_file"
+    printf -v quoted_err '%q' "$stderr_file"
+    command="printf '\\033]0;%s\\007' '$title'; printf '%s\\n' 'Publisher staged. Press Enter in the original Terminal window to start.'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; rm -f $quoted_pid_file; exit"
+    escaped=${command//\\/\\\\}
+    escaped=${escaped//\"/\\\"}
+    if ! /usr/bin/osascript \
+        -e 'tell application "Terminal"' \
+        -e 'activate' \
+        -e "do script \"$escaped\"" \
+        -e 'end tell' >/dev/null; then
+        demo_warn "Could not open the staged publisher log in Terminal.app. Logs remain under $DEMO_LOGS_DIR."
+        return 1
+    fi
+}
+
 start_logged_component() {
     local component display executable log_base show_log stdout_file stderr_file
     component=$1; display=$2; executable=$3; log_base=$4; show_log=$5
@@ -258,7 +279,7 @@ cleanup_failed_start() {
         [ -n "$shapes_pid" ] && demo_stop_owned_process "$shapes_pid" "$shapes_marker" "$shapes_path" 2
         [ -n "$sub_pid" ] && demo_stop_owned_process "$sub_pid" "$sub_marker" "$sub_path" 2
         [ -n "$rs_pid" ] && demo_stop_owned_process "$rs_pid" "$rs_marker" "$rs_path" 2
-        rm -f "$state_file"
+        rm -f "$publisher_viewer_pid_file" "$publisher_viewer_pid_file.tmp" "$state_file"
         set -e
     fi
     return "$status"
@@ -279,6 +300,21 @@ demo_info "Starting decoded Kafka subscriber on topic 'Square'..."
 start_logged_component kafkaSubscriber "Kafka Subscriber (Square)" "$DEMO_SUBSCRIBER" kafka_subscriber "$show_logs" \
     "$bootstrap_servers" Square
 sub_pid=$DEMO_LAST_PID
+
+publisher_log_staged=0
+if [ "$show_logs" -eq 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
+    publisher_stdout_file="$DEMO_LOGS_DIR/kafka_publisher.log"
+    publisher_stderr_file="$DEMO_LOGS_DIR/kafka_publisher.error.log"
+    : >"$publisher_stdout_file"
+    : >"$publisher_stderr_file"
+    rm -f "$publisher_viewer_pid_file" "$publisher_viewer_pid_file.tmp"
+    if show_staged_macos_publisher_log \
+        "Kafka Publisher (Circle) - press Enter in original Terminal" \
+        "$$" "$publisher_viewer_pid_file" \
+        "$publisher_stdout_file" "$publisher_stderr_file"; then
+        publisher_log_staged=1
+    fi
+fi
 
 if [ "$headless" -ne 1 ]; then
     demo_info "Starting Shapes Demo..."
@@ -305,9 +341,15 @@ if [ "$headless" -ne 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
 fi
 
 demo_info "Starting Kafka publisher for '$circle_color' circles on topic 'Circle'..."
-start_logged_component kafkaPublisher "Kafka Publisher (Circle)" "$DEMO_PUBLISHER" kafka_publisher "$show_logs" \
+publisher_show_log=$show_logs
+[ "$publisher_log_staged" -ne 1 ] || publisher_show_log=0
+start_logged_component kafkaPublisher "Kafka Publisher (Circle)" "$DEMO_PUBLISHER" kafka_publisher "$publisher_show_log" \
     "$bootstrap_servers" "$circle_color" Circle
 pub_pid=$DEMO_LAST_PID
+if [ "$publisher_log_staged" -eq 1 ]; then
+    printf '%s\n' "$pub_pid" >"$publisher_viewer_pid_file.tmp"
+    mv "$publisher_viewer_pid_file.tmp" "$publisher_viewer_pid_file"
+fi
 
 write_state
 startup_complete=1

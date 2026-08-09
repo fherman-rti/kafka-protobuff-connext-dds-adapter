@@ -133,6 +133,8 @@ and subscriber beneath `rticonnextdds-gateway/install`.
 The build is complete when it prints `Gateway build and installation
 completed`. Do not continue after an error.
 
+If the previous command succeeds, **SKIP to section 5**.
+
 If Connext is installed somewhere else, specify the actual directory:
 
 ```bash
@@ -159,6 +161,12 @@ identical.
 ## 5. Start the container runtime and validate the installation
 
 Start the selected container runtime and wait for its engine to become ready.
+For OrbStack, run:
+
+```bash
+orb start
+```
+
 The runtime must expose its CLI and Compose plugin normally on `PATH`:
 
 ```bash
@@ -175,6 +183,8 @@ All three commands must succeed. Then run the complete repository check:
 
 Continue only when it ends with `Prerequisite check PASSED.` A warning that
 Kafka is not reachable is expected because the broker starts in the next step.
+
+If the previous command succeeds, **SKIP to section 6**.
 
 For a non-default Connext installation, use the same selection as the build:
 
@@ -219,9 +229,10 @@ rehearsal:
 ./demo/scripts/Start-Demo.sh --domain-id 101
 ```
 
-The launcher starts Routing Service, the decoded Kafka `Square` subscriber,
-and Shapes Demo. It opens Terminal log viewers and then pauses in the original
-Terminal at this prompt:
+The launcher creates all four demonstration windows at startup: Shapes Demo
+plus Terminal viewers for Routing Service, the decoded Kafka `Square`
+subscriber, and the staged Kafka `Circle` publisher. It then pauses in the
+original Terminal at this prompt:
 
 ```text
 Press Enter here when ready to publish GREEN circles to Kafka topic Circle:
@@ -235,7 +246,7 @@ Leave that prompt waiting while performing the first two actions:
    samples with `color`, `x`, `y`, and `shapesize` fields. This proves the
    DDS-to-Protobuf-to-Kafka path.
 3. Return to the original Terminal and press **Enter**. The launcher starts the
-   Kafka `Circle` publisher and its log viewer.
+   Kafka `Circle` publisher, and its already-open viewer begins showing output.
 4. Watch Shapes Demo display moving GREEN circles. This proves the
    Kafka-to-Protobuf-to-DDS path.
 
