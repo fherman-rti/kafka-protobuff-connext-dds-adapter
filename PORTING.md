@@ -221,8 +221,8 @@ The clean-room support bundle is preserved as
 The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
 macOS workflow and the basis for the Ubuntu port. The tested macOS setup and
 demo commands have been promoted to [MACOS.md](MACOS.md). This document remains
-the engineering record and plan for the remaining cross-platform and Windows
-regression work.
+the engineering record and plan for the cross-platform work and subsequent
+Windows regression validation.
 
 ## Current Ubuntu Implementation Status
 
@@ -267,6 +267,17 @@ startup, both demo directions, and shutdown; all four demo windows closed and
 the broker and Compose network were removed. Linux process ownership checks now
 use `/proc/<pid>/exe` so long executable names are not truncated by `ps` during
 cleanup. The tested workflow is documented in [UBUNTU.md](UBUNTU.md).
+
+## Current Windows Regression Status
+
+Status recorded on 2026-08-10 after the Ubuntu clean-room validation succeeded.
+The Windows PowerShell workflow was retested from scratch through installation,
+Gateway build, Kafka startup, demo startup, and demo shutdown. A second Kafka
+startup and demo start/stop cycle also succeeded. In both cycles,
+`Stop-Demo.ps1` closed the Kafka publisher, Kafka subscriber, Shapes Demo, and
+Routing Service windows. This confirms the Windows process-tree shutdown fix
+and the existing Windows installation, build, and repeated demo lifecycle after
+the shared Unix workflow changes.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
@@ -621,6 +632,10 @@ After the local VM demo passes:
 - The same scripts accept Linux paths containing spaces.
 
 ## Phase 10: Windows Regression
+
+The installation, build, Kafka startup, and repeated demo start/stop portion
+passed clean-room regression testing on 2026-08-10 after Ubuntu validation.
+See [Current Windows Regression Status](#current-windows-regression-status).
 
 After shared-script changes, repeat the existing Windows clean-room sequence:
 
