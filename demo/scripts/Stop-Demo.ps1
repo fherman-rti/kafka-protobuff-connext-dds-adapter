@@ -24,13 +24,13 @@ $dockerDir = Join-Path $demoRoot "docker"
 if (Test-Path $stateFile) {
     $state = Get-Content $stateFile -Raw | ConvertFrom-Json
     foreach ($entry in $state.processes.PSObject.Properties) {
-        $procId = $entry.Value
-        $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
+        $processId = $entry.Value
+        $proc = Get-Process -Id $processId -ErrorAction SilentlyContinue
         if ($proc) {
-            Write-Host "Stopping $($entry.Name) (PID $procId, $($proc.ProcessName))..." -ForegroundColor Cyan
-            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            Write-Host "Stopping $($entry.Name) (PID $processId, $($proc.ProcessName))..." -ForegroundColor Cyan
+            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
         } else {
-            Write-Host "$($entry.Name) (PID $procId) is not running." -ForegroundColor Yellow
+            Write-Host "$($entry.Name) (PID $processId) is not running." -ForegroundColor Yellow
         }
     }
     Remove-Item $stateFile -Force
