@@ -28,6 +28,7 @@ case "$grace_seconds" in
 esac
 
 state_file="$DEMO_LOGS_DIR/demo-state.json"
+viewer_stop_file="$DEMO_LOGS_DIR/.demo-viewers-stop"
 all_handled=1
 
 state_get() {
@@ -98,6 +99,9 @@ if [ -f "$state_file" ]; then
         demo_warn "The state file is missing the supported schema version; it will be retained."
         all_handled=0
     else
+        if [ "$DEMO_PLATFORM" = "Linux" ]; then
+            : >"$viewer_stop_file"
+        fi
         for component in kafkaPublisher kafkaPublisherWindow shapesDemo kafkaSubscriber routingService; do
             pid=$(state_get "processes.$component.pid" 2>/dev/null || true)
             [ -n "$pid" ] || continue

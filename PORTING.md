@@ -254,11 +254,16 @@ cleanup validation. An initial shutdown also left the staged Kafka publisher's
 GNOME Terminal window open because only the publisher application was recorded.
 The launcher now records the terminal's Bash process with the same PID, start-
 marker, and executable ownership data used for application processes, and
-cleanup explicitly stops that owned process. A focused owned-process test
-passes; the behavior still requires a live GNOME Terminal retest. The Phase 9
-VM acceptance work therefore remains open. The implementation workflow is
-documented in [UBUNTU.md](UBUNTU.md) with its pending validation status stated
-explicitly.
+cleanup explicitly stops that owned process. A live retest showed that this was
+not sufficient: both the publisher and Routing Service windows could retain
+their `tail -f` children through Kafka teardown. All Linux viewers now watch a
+shared demo-owned stop signal and use shell exit traps to terminate their tail
+processes. `Stop-Demo.sh` asserts that signal before stopping applications or
+containers and leaves it present until the next launcher removes it, avoiding
+a viewer-observation race. The behavior still requires another live GNOME
+Terminal retest. The Phase 9 VM acceptance work therefore remains open. The
+implementation workflow is documented in [UBUNTU.md](UBUNTU.md) with its
+pending validation status stated explicitly.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 

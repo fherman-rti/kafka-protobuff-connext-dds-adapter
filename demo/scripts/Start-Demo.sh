@@ -100,7 +100,10 @@ publisher_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-$$.pid"
 publisher_prompt_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-prompt-$$.pid"
 publisher_prompt_pid=""
 publisher_window_pid=""; publisher_window_marker=""; publisher_window_path=""
+viewer_stop_file="$DEMO_LOGS_DIR/.demo-viewers-stop"
 startup_complete=0
+
+rm -f "$viewer_stop_file"
 
 add_process_to_plist() {
     local plist key pid marker executable
@@ -285,11 +288,12 @@ show_staged_macos_publisher_log() {
 }
 
 show_linux_log() {
-    local title pid stdout_file stderr_file quoted_out quoted_err command
+    local title pid stdout_file stderr_file quoted_out quoted_err quoted_stop command
     title=$1; pid=$2; stdout_file=$3; stderr_file=$4
     printf -v quoted_out '%q' "$stdout_file"
     printf -v quoted_err '%q' "$stderr_file"
-    command="tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while kill -0 $pid 2>/dev/null; do sleep 1; done; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; exit"
+    printf -v quoted_stop '%q' "$viewer_stop_file"
+    command="tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; trap 'kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null' EXIT; while [ ! -e $quoted_stop ] && kill -0 $pid 2>/dev/null; do sleep 1; done; exit"
     gnome-terminal --title="$title" -- bash -c "$command" >/dev/null 2>&1 || \
         demo_warn "Could not open the $title log in GNOME Terminal. Logs remain under $DEMO_LOGS_DIR."
 }
@@ -298,7 +302,7 @@ show_staged_linux_publisher_log() {
     local title launcher_pid start_file pid_file prompt_pid_file
     local stdout_file stderr_file prompt prompt_deadline
     local quoted_start_file quoted_pid_file quoted_prompt_pid_file
-    local quoted_prompt_pid_tmp quoted_out quoted_err quoted_prompt command
+    local quoted_prompt_pid_tmp quoted_out quoted_err quoted_prompt quoted_stop command
     title=$1; launcher_pid=$2; start_file=$3; pid_file=$4
     prompt_pid_file=$5; stdout_file=$6; stderr_file=$7; prompt=$8
     printf -v quoted_start_file '%q' "$start_file"
@@ -308,7 +312,8 @@ show_staged_linux_publisher_log() {
     printf -v quoted_out '%q' "$stdout_file"
     printf -v quoted_err '%q' "$stderr_file"
     printf -v quoted_prompt '%q' "$prompt"
-    command="printf '%s\\n' \$\$ > $quoted_prompt_pid_tmp; mv $quoted_prompt_pid_tmp $quoted_prompt_pid_file; clear; printf '%s' $quoted_prompt; while kill -0 $launcher_pid 2>/dev/null; do if IFS= read -r -t 1 demo_reply; then : > $quoted_start_file; break; fi; done; if [ ! -e $quoted_start_file ]; then rm -f $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit; fi; printf '\\nStarting publisher...\\n'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; rm -f $quoted_start_file $quoted_pid_file $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit"
+    printf -v quoted_stop '%q' "$viewer_stop_file"
+    command="printf '%s\\n' \$\$ > $quoted_prompt_pid_tmp; mv $quoted_prompt_pid_tmp $quoted_prompt_pid_file; trap 'rm -f $quoted_start_file $quoted_pid_file $quoted_prompt_pid_file $quoted_prompt_pid_tmp; if [ -n \"\${demo_tail_pid:-}\" ]; then kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; fi' EXIT; clear; printf '%s' $quoted_prompt; while [ ! -e $quoted_stop ] && kill -0 $launcher_pid 2>/dev/null; do if IFS= read -r -t 1 demo_reply; then : > $quoted_start_file; break; fi; done; if [ ! -e $quoted_start_file ] || [ -e $quoted_stop ]; then exit; fi; printf '\\nStarting publisher...\\n'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -e $quoted_stop ] && [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ ! -e $quoted_stop ] && [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while [ ! -e $quoted_stop ] && kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; exit"
     if ! gnome-terminal --title="$title" -- bash -c "$command" >/dev/null 2>&1; then
         demo_warn "Could not open the staged publisher log in GNOME Terminal. Logs remain under $DEMO_LOGS_DIR."
         return 1
@@ -382,6 +387,7 @@ cleanup_failed_start() {
             "$publisher_start_file" \
             "$publisher_pid_file" "$publisher_pid_file.tmp" \
             "$publisher_prompt_pid_file" "$publisher_prompt_pid_file.tmp" \
+            "$viewer_stop_file" \
             "$state_file"
         set -e
     fi
