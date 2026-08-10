@@ -243,7 +243,7 @@ demo_validate_native_binary() {
 }
 
 demo_validate_dependencies() {
-    local path output
+    local path output validation_library_path
     path=$1
     if [ "$DEMO_PLATFORM" = "macOS" ]; then
         output=$(/usr/bin/otool -L "$path") || demo_die "otool could not inspect $path."
@@ -251,7 +251,11 @@ demo_validate_dependencies() {
             demo_die "Artifact has a build-host package-manager dependency: $path"
         fi
     else
-        output=$(ldd "$path") || demo_die "ldd could not inspect $path."
+        validation_library_path="$DEMO_GATEWAY_LIB_DIR:$DEMO_CONNEXT_APP_LIB_DIR:$DEMO_CONNEXT_LIB_DIR"
+        if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+            validation_library_path="$validation_library_path:$LD_LIBRARY_PATH"
+        fi
+        output=$(LD_LIBRARY_PATH=$validation_library_path ldd "$path") || demo_die "ldd could not inspect $path."
         if printf '%s\n' "$output" | /usr/bin/grep -q 'not found'; then
             demo_die "Artifact has an unresolved dependency: $path"
         fi

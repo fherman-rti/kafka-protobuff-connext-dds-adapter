@@ -243,8 +243,12 @@ VirtualBox clean-room run configured, compiled, and installed the complete
 Gateway target with Connext architecture `x64Linux4gcc8.5.0`. The first
 post-build inspection exposed a script defect: `file` inspected the installed
 `.so` symlink instead of its ELF target. Native validation now uses `file -L`
-and passes a focused ELF-symlink probe. The clean-room run still needs to repeat
-the final native and `ldd` checks and has not yet completed the Docker Engine
+and passes a focused ELF-symlink probe. A second issue occurred when `ldd`
+inspected `librdkafka++.so` without the sibling Gateway install directory in
+its search path. Dependency validation now supplies the same Gateway and
+Connext library directories used at runtime. The corrected native and `ldd`
+checks pass against every installed `.so` link and both example executables
+from the clean-room build. The run has not yet completed the Docker Engine
 broker run, Connext GUI launch, both traffic directions, repeat startup, or
 cleanup validation. The Phase 9 VM acceptance work therefore remains open.
 The implementation workflow is documented in [UBUNTU.md](UBUNTU.md) with its
