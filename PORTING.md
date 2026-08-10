@@ -238,12 +238,17 @@ The launcher rejects interactive use without a desktop display or GNOME
 Terminal and continues to support `--headless` for SSH and process-only runs.
 Docker Engine and the Compose v2 plugin remain the Ubuntu container runtime.
 
-The implementation passes Bash syntax validation on Linux. It has not yet
-passed the Ubuntu 22.04 VirtualBox clean-room build, native `ldd` checks,
-Docker Engine broker run, Connext GUI launch, both traffic directions, repeat
-startup, or cleanup validation. The Phase 9 VM acceptance work therefore
-remains open. The implementation workflow is documented in
-[UBUNTU.md](UBUNTU.md) with its pending validation status stated explicitly.
+The implementation passes Bash syntax validation on Linux. An Ubuntu 22.04
+VirtualBox clean-room run configured, compiled, and installed the complete
+Gateway target with Connext architecture `x64Linux4gcc8.5.0`. The first
+post-build inspection exposed a script defect: `file` inspected the installed
+`.so` symlink instead of its ELF target. Native validation now uses `file -L`
+and passes a focused ELF-symlink probe. The clean-room run still needs to repeat
+the final native and `ldd` checks and has not yet completed the Docker Engine
+broker run, Connext GUI launch, both traffic directions, repeat startup, or
+cleanup validation. The Phase 9 VM acceptance work therefore remains open.
+The implementation workflow is documented in [UBUNTU.md](UBUNTU.md) with its
+pending validation status stated explicitly.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 

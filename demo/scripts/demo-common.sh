@@ -231,7 +231,7 @@ demo_validate_native_binary() {
     local description path output
     description=$1
     path=$2
-    output=$(/usr/bin/file "$path") || demo_die "Could not inspect $path."
+    output=$(/usr/bin/file -L "$path") || demo_die "Could not inspect $path."
     if [ "$DEMO_PLATFORM" = "macOS" ]; then
         printf '%s\n' "$output" | /usr/bin/grep -q 'arm64' || demo_die "$description is not ARM64: $output"
         if printf '%s\n' "$output" | /usr/bin/grep -q 'x86_64'; then
