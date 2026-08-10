@@ -13,14 +13,14 @@ The workflow uses Bash, Docker Engine with the Compose v2 plugin, and GNOME
 Terminal. PowerShell, Ninja, Docker Desktop, and a separate `protoc`
 installation are not required.
 
-> **Validation status:** The Ubuntu scripts and GNOME Terminal integration are
-> implemented and pass Bash syntax checks on Linux, but this complete workflow
-> has not yet passed the Ubuntu 22.04 VirtualBox clean-room and end-to-end
-> traffic rehearsal. See [PORTING.md](PORTING.md) for the current status.
+> **Validation status:** This workflow passed a complete Ubuntu 22.04 x64
+> VirtualBox clean-room installation and end-to-end rehearsal on 2026-08-10.
+> Both traffic directions worked, and shutdown closed all four demo windows and
+> removed the broker and Compose network.
 
 ## 1. Prepare the Ubuntu host
 
-The planned validation baseline is Ubuntu 22.04 Desktop x64 in VirtualBox with:
+The validation baseline is Ubuntu 22.04 Desktop x64 in VirtualBox with:
 
 - 4 virtual CPUs
 - 8 GB RAM
@@ -292,7 +292,7 @@ that local test:
 | Port `9092` or `9021` is occupied | Stop the other service or previous Compose project. Use broker-only startup when only `9021` is unavailable. |
 | `demo-state.json` already exists | Run `./demo/scripts/Stop-Demo.sh`; it validates process ownership before stopping anything. |
 
-For implementation details and outstanding validation work, see
+For implementation details and the remaining cross-platform work, see
 [PORTING.md](PORTING.md). The tested Apple Silicon workflow is in
 [MACOS.md](MACOS.md), and the Windows workflow remains in
 [README.md](README.md) and [demo/playbook.md](demo/playbook.md).

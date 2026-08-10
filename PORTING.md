@@ -221,7 +221,7 @@ The clean-room support bundle is preserved as
 The existing `.ps1` files remain the Windows workflow. The `.sh` files are the
 macOS workflow and the basis for the Ubuntu port. The tested macOS setup and
 demo commands have been promoted to [MACOS.md](MACOS.md). This document remains
-the engineering record and plan for the unfinished Ubuntu and Windows
+the engineering record and plan for the remaining cross-platform and Windows
 regression work.
 
 ## Current Ubuntu Implementation Status
@@ -248,9 +248,11 @@ inspected `librdkafka++.so` without the sibling Gateway install directory in
 its search path. Dependency validation now supplies the same Gateway and
 Connext library directories used at runtime. The corrected native and `ldd`
 checks pass against every installed `.so` link and both example executables
-from the clean-room build. The run has not yet completed the Docker Engine
-broker run, Connext GUI launch, both traffic directions, repeat startup, or
-cleanup validation. An initial shutdown also left the staged Kafka publisher's
+from the clean-room build. The clean-room run completed Docker Engine broker
+startup, the Connext GUI launch, and both traffic directions: the decoded Kafka
+subscriber received BLUE `Square` samples from Shapes Demo, and Shapes Demo
+displayed GREEN `Circle` samples produced through Kafka. An initial shutdown
+also left the staged Kafka publisher's
 GNOME Terminal window open because only the publisher application was recorded.
 The launcher now records the terminal's Bash process with the same PID, start-
 marker, and executable ownership data used for application processes, and
@@ -260,10 +262,11 @@ their `tail -f` children through Kafka teardown. All Linux viewers now watch a
 shared demo-owned stop signal and use shell exit traps to terminate their tail
 processes. `Stop-Demo.sh` asserts that signal before stopping applications or
 containers and leaves it present until the next launcher removes it, avoiding
-a viewer-observation race. The behavior still requires another live GNOME
-Terminal retest. The Phase 9 VM acceptance work therefore remains open. The
-implementation workflow is documented in [UBUNTU.md](UBUNTU.md) with its
-pending validation status stated explicitly.
+a viewer-observation race. A final clean-room retest passed installation,
+startup, both demo directions, and shutdown; all four demo windows closed and
+the broker and Compose network were removed. Linux process ownership checks now
+use `/proc/<pid>/exe` so long executable names are not truncated by `ps` during
+cleanup. The tested workflow is documented in [UBUNTU.md](UBUNTU.md).
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
@@ -635,8 +638,7 @@ The two message directions must still pass.
 
 The tested Apple Silicon workflow is published separately in
 [MACOS.md](MACOS.md). The Ubuntu implementation workflow is published in
-[UBUNTU.md](UBUNTU.md) with an explicit validation warning. After each remaining
-target passes clean-room testing:
+[UBUNTU.md](UBUNTU.md). After each remaining target passes clean-room testing:
 
 - Add tested prerequisites and installation commands to `README.md`.
 - Keep OS-specific installation sections separate.
