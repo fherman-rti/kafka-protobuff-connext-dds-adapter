@@ -99,6 +99,7 @@ publisher_start_file="$DEMO_LOGS_DIR/.kafka-publisher-start-$$"
 publisher_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-$$.pid"
 publisher_prompt_pid_file="$DEMO_LOGS_DIR/.kafka-publisher-prompt-$$.pid"
 publisher_prompt_pid=""
+publisher_window_pid=""; publisher_window_marker=""; publisher_window_path=""
 startup_complete=0
 
 add_process_to_plist() {
@@ -148,6 +149,9 @@ write_state() {
         STATE_RS_PID=$rs_pid STATE_RS_MARKER=$rs_marker STATE_RS_PATH=$rs_path \
         STATE_SUB_PID=$sub_pid STATE_SUB_MARKER=$sub_marker STATE_SUB_PATH=$sub_path \
         STATE_PUB_PID=$pub_pid STATE_PUB_MARKER=$pub_marker STATE_PUB_PATH=$pub_path \
+        STATE_PUB_WINDOW_PID=$publisher_window_pid \
+        STATE_PUB_WINDOW_MARKER=$publisher_window_marker \
+        STATE_PUB_WINDOW_PATH=$publisher_window_path \
         STATE_SHAPES_PID=$shapes_pid STATE_SHAPES_MARKER=$shapes_marker STATE_SHAPES_PATH=$shapes_path \
         python3 - "$json_tmp" <<'PY'
 import json
@@ -169,6 +173,7 @@ for name, prefix in (
     ("routingService", "STATE_RS"),
     ("kafkaSubscriber", "STATE_SUB"),
     ("kafkaPublisher", "STATE_PUB"),
+    ("kafkaPublisherWindow", "STATE_PUB_WINDOW"),
     ("shapesDemo", "STATE_SHAPES"),
 ):
     value = process(prefix)
@@ -205,6 +210,11 @@ register_process() {
         routingService) rs_pid=$pid; rs_marker=$marker; rs_path=$executable ;;
         kafkaSubscriber) sub_pid=$pid; sub_marker=$marker; sub_path=$executable ;;
         kafkaPublisher) pub_pid=$pid; pub_marker=$marker; pub_path=$executable ;;
+        kafkaPublisherWindow)
+            publisher_window_pid=$pid
+            publisher_window_marker=$marker
+            publisher_window_path=$executable
+            ;;
         shapesDemo) shapes_pid=$pid; shapes_marker=$marker; shapes_path=$executable ;;
         *) demo_die "Unknown process component: $component" ;;
     esac
@@ -363,6 +373,8 @@ cleanup_failed_start() {
     if [ "$startup_complete" -ne 1 ]; then
         set +e
         [ -n "$pub_pid" ] && demo_stop_owned_process "$pub_pid" "$pub_marker" "$pub_path" 2
+        [ -n "$publisher_window_pid" ] && demo_stop_owned_process \
+            "$publisher_window_pid" "$publisher_window_marker" "$publisher_window_path" 2
         [ -n "$shapes_pid" ] && demo_stop_owned_process "$shapes_pid" "$shapes_marker" "$shapes_path" 2
         [ -n "$sub_pid" ] && demo_stop_owned_process "$sub_pid" "$sub_marker" "$sub_path" 2
         [ -n "$rs_pid" ] && demo_stop_owned_process "$rs_pid" "$rs_marker" "$rs_path" 2
@@ -417,6 +429,7 @@ if [ "$show_logs" -eq 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
         "$publisher_prompt_pid_file" \
         "$publisher_stdout_file" "$publisher_stderr_file" \
         "Press Enter to start publishing $circle_color circles to Kafka topic Circle: "; then
+        register_process kafkaPublisherWindow "$publisher_prompt_pid" "$(command -v bash)"
         publisher_log_staged=1
     fi
 fi

@@ -98,7 +98,7 @@ if [ -f "$state_file" ]; then
         demo_warn "The state file is missing the supported schema version; it will be retained."
         all_handled=0
     else
-        for component in kafkaPublisher shapesDemo kafkaSubscriber routingService; do
+        for component in kafkaPublisher kafkaPublisherWindow shapesDemo kafkaSubscriber routingService; do
             pid=$(state_get "processes.$component.pid" 2>/dev/null || true)
             [ -n "$pid" ] || continue
             marker=$(state_get "processes.$component.startMarker" 2>/dev/null || true)
@@ -126,6 +126,9 @@ if [ -f "$state_file" ]; then
 
     if [ "$all_handled" -eq 1 ]; then
         rm -f "$state_file"
+        rm -f \
+            "$DEMO_LOGS_DIR"/.kafka-publisher-*.pid \
+            "$DEMO_LOGS_DIR"/.kafka-publisher-*.pid.tmp
     else
         demo_warn "The state file was retained because at least one process could not be safely handled."
     fi

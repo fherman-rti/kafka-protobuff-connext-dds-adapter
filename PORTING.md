@@ -250,9 +250,15 @@ Connext library directories used at runtime. The corrected native and `ldd`
 checks pass against every installed `.so` link and both example executables
 from the clean-room build. The run has not yet completed the Docker Engine
 broker run, Connext GUI launch, both traffic directions, repeat startup, or
-cleanup validation. The Phase 9 VM acceptance work therefore remains open.
-The implementation workflow is documented in [UBUNTU.md](UBUNTU.md) with its
-pending validation status stated explicitly.
+cleanup validation. An initial shutdown also left the staged Kafka publisher's
+GNOME Terminal window open because only the publisher application was recorded.
+The launcher now records the terminal's Bash process with the same PID, start-
+marker, and executable ownership data used for application processes, and
+cleanup explicitly stops that owned process. A focused owned-process test
+passes; the behavior still requires a live GNOME Terminal retest. The Phase 9
+VM acceptance work therefore remains open. The implementation workflow is
+documented in [UBUNTU.md](UBUNTU.md) with its pending validation status stated
+explicitly.
 
 ## Phase 1: Apple Silicon Feasibility Spike
 
