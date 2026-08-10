@@ -42,11 +42,9 @@ sudo apt install -y build-essential cmake git python3 netcat-openbsd \
 ```
 
 Install RTI Connext DDS Professional 7.7.0 for Linux x64, including Routing
-Service and Shapes Demo. The standard system location is
-`/opt/rti_connext_dds-7.7.0`; a per-user installation such as
-`$HOME/rti_connext_dds-7.7.0` is also supported. Place a valid
-`rti_license.dat` in the installation directory, or set `RTI_LICENSE_FILE` to
-the license path.
+Service and Shapes Demo. Keep the installer's default location:
+`$HOME/rti_connext_dds-7.7.0`. Place a valid `rti_license.dat` in that
+directory.
 
 Install Docker Engine from Docker's official Ubuntu repository by following
 [Install Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
@@ -78,26 +76,16 @@ gnome-terminal --version
 docker version
 docker compose version
 docker info --format '{{.ServerVersion}}'
-test -d "${NDDSHOME:-/opt/rti_connext_dds-7.7.0}"
-test -f "${RTI_LICENSE_FILE:-${NDDSHOME:-/opt/rti_connext_dds-7.7.0}/rti_license.dat}"
+test -d "$HOME/rti_connext_dds-7.7.0"
+test -f "$HOME/rti_connext_dds-7.7.0/rti_license.dat"
 ```
 
 `uname -m` must print `x86_64`. The Docker commands and both `test` commands
-must succeed without `sudo`. Source the installed `rtisetenv_*.bash` script
-before these checks when Connext is installed outside `/opt`.
+must succeed without `sudo`.
 
-The scripts automatically select Connext at `/opt/rti_connext_dds-7.7.0`, or
-use `NDDSHOME` when it points to a valid installation. For a per-user install,
-source its generated environment script before running the repository scripts:
-
-```bash
-source "$HOME/rti_connext_dds-7.7.0/resource/scripts/rtisetenv_x64Linux4gcc8.5.0.bash"
-```
-
-Use the `rtisetenv_*.bash` file actually installed on the system. Alternatively,
-pass the installation path with `--connext-dir` to the build, prerequisite,
-and demo scripts. If more than one `x64Linux*` target is installed, also pass
-the verified target name with `--connext-arch`.
+The scripts automatically select Connext at the default home-directory
+location. `/opt/rti_connext_dds-7.7.0` and explicit `NDDSHOME` or
+`CONNEXTDDS_DIR` values remain supported for non-default installations.
 
 ## 2. Clone the repository
 
@@ -107,10 +95,12 @@ should be installed. `git clone` creates the repository directory.
 ```bash
 git clone https://github.com/fherman-rti/kafka-protobuff-connext-dds-adapter.git
 cd kafka-protobuff-connext-dds-adapter
+source ~/rti_connext_dds-7.7.0/resource/scripts/rtisetenv_x64Linux4gcc8.5.0.bash
 ```
 
-From this point forward, run repository commands from this directory. Confirm
-the included Gateway source and Ubuntu launcher are present:
+The `source` command must run in every new Terminal used for the demo. From
+this point forward, run repository commands from this directory. Confirm the
+included Gateway source and Ubuntu launcher are present:
 
 ```bash
 test -f rticonnextdds-gateway/CMakeLists.txt

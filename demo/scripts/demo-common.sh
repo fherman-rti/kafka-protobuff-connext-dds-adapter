@@ -137,18 +137,26 @@ demo_resolve_connext_dir() {
             return
         fi
         candidate_root="/Applications"
+        for candidate in "$candidate_root"/rti_connext_dds-*; do
+            [ -d "$candidate" ] || continue
+            DEMO_CONNEXT_DIR=$candidate
+            count=$((count + 1))
+        done
     else
+        if [ -d "$HOME/rti_connext_dds-7.7.0" ]; then
+            DEMO_CONNEXT_DIR="$HOME/rti_connext_dds-7.7.0"
+            return
+        fi
         if [ -d "/opt/rti_connext_dds-7.7.0" ]; then
             DEMO_CONNEXT_DIR="/opt/rti_connext_dds-7.7.0"
             return
         fi
-        candidate_root="/opt"
+        for candidate in "$HOME"/rti_connext_dds-* /opt/rti_connext_dds-*; do
+            [ -d "$candidate" ] || continue
+            DEMO_CONNEXT_DIR=$candidate
+            count=$((count + 1))
+        done
     fi
-    for candidate in "$candidate_root"/rti_connext_dds-*; do
-        [ -d "$candidate" ] || continue
-        DEMO_CONNEXT_DIR=$candidate
-        count=$((count + 1))
-    done
     [ "$count" -eq 1 ] || demo_die "Connext DDS could not be selected automatically. Pass --connext-dir PATH."
 }
 
