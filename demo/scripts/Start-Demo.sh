@@ -52,7 +52,9 @@ case "$domain_id" in
 esac
 
 if [ "$DEMO_PLATFORM" = "Linux" ] && [ "$headless" -ne 1 ]; then
-    demo_die "Interactive Linux launch is deferred to the Ubuntu VM desktop phase. Use --headless."
+    [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || \
+        demo_die "Interactive Linux launch requires a desktop session. Use --headless over SSH."
+    demo_require_command gnome-terminal "Install GNOME Terminal for interactive Ubuntu demo windows."
 fi
 demo_require_macos_shared_memory
 
@@ -272,6 +274,57 @@ show_staged_macos_publisher_log() {
     fi
 }
 
+show_linux_log() {
+    local title pid stdout_file stderr_file quoted_out quoted_err command
+    title=$1; pid=$2; stdout_file=$3; stderr_file=$4
+    printf -v quoted_out '%q' "$stdout_file"
+    printf -v quoted_err '%q' "$stderr_file"
+    command="tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while kill -0 $pid 2>/dev/null; do sleep 1; done; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; exit"
+    gnome-terminal --title="$title" -- bash -c "$command" >/dev/null 2>&1 || \
+        demo_warn "Could not open the $title log in GNOME Terminal. Logs remain under $DEMO_LOGS_DIR."
+}
+
+show_staged_linux_publisher_log() {
+    local title launcher_pid start_file pid_file prompt_pid_file
+    local stdout_file stderr_file prompt prompt_deadline
+    local quoted_start_file quoted_pid_file quoted_prompt_pid_file
+    local quoted_prompt_pid_tmp quoted_out quoted_err quoted_prompt command
+    title=$1; launcher_pid=$2; start_file=$3; pid_file=$4
+    prompt_pid_file=$5; stdout_file=$6; stderr_file=$7; prompt=$8
+    printf -v quoted_start_file '%q' "$start_file"
+    printf -v quoted_pid_file '%q' "$pid_file"
+    printf -v quoted_prompt_pid_file '%q' "$prompt_pid_file"
+    printf -v quoted_prompt_pid_tmp '%q' "$prompt_pid_file.tmp"
+    printf -v quoted_out '%q' "$stdout_file"
+    printf -v quoted_err '%q' "$stderr_file"
+    printf -v quoted_prompt '%q' "$prompt"
+    command="printf '%s\\n' \$\$ > $quoted_prompt_pid_tmp; mv $quoted_prompt_pid_tmp $quoted_prompt_pid_file; clear; printf '%s' $quoted_prompt; while kill -0 $launcher_pid 2>/dev/null; do if IFS= read -r -t 1 demo_reply; then : > $quoted_start_file; break; fi; done; if [ ! -e $quoted_start_file ]; then rm -f $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit; fi; printf '\\nStarting publisher...\\n'; tail -n +1 -f $quoted_out $quoted_err & demo_tail_pid=\$!; while [ ! -s $quoted_pid_file ] && kill -0 $launcher_pid 2>/dev/null; do sleep 1; done; if [ -s $quoted_pid_file ]; then IFS= read -r demo_component_pid < $quoted_pid_file; while kill -0 \$demo_component_pid 2>/dev/null; do sleep 1; done; fi; kill \$demo_tail_pid 2>/dev/null; wait \$demo_tail_pid 2>/dev/null; rm -f $quoted_start_file $quoted_pid_file $quoted_prompt_pid_file $quoted_prompt_pid_tmp; exit"
+    if ! gnome-terminal --title="$title" -- bash -c "$command" >/dev/null 2>&1; then
+        demo_warn "Could not open the staged publisher log in GNOME Terminal. Logs remain under $DEMO_LOGS_DIR."
+        return 1
+    fi
+
+    prompt_deadline=$((SECONDS + 10))
+    while [ ! -s "$prompt_pid_file" ] && [ "$SECONDS" -lt "$prompt_deadline" ]; do
+        sleep 0.1
+    done
+    if [ ! -s "$prompt_pid_file" ]; then
+        demo_warn "The staged publisher window did not become ready."
+        return 1
+    fi
+    IFS= read -r publisher_prompt_pid <"$prompt_pid_file"
+    case "$publisher_prompt_pid" in
+        ''|*[!0-9]*)
+            demo_warn "The staged publisher window reported an invalid process ID."
+            return 1
+            ;;
+    esac
+    if ! kill -0 "$publisher_prompt_pid" 2>/dev/null; then
+        demo_warn "The staged publisher window exited before becoming ready."
+        return 1
+    fi
+}
+
 start_logged_component() {
     local component display executable log_base show_log stdout_file stderr_file
     component=$1; display=$2; executable=$3; log_base=$4; show_log=$5
@@ -295,8 +348,12 @@ start_logged_component() {
         demo_die "$display exited during startup."
     fi
     register_process "$component" "$DEMO_LAST_PID" "$executable"
-    if [ "$show_log" -eq 1 ] && [ "$DEMO_PLATFORM" = "macOS" ]; then
-        show_macos_log "$display" "$DEMO_LAST_PID" "$stdout_file" "$stderr_file"
+    if [ "$show_log" -eq 1 ]; then
+        if [ "$DEMO_PLATFORM" = "macOS" ]; then
+            show_macos_log "$display" "$DEMO_LAST_PID" "$stdout_file" "$stderr_file"
+        else
+            show_linux_log "$display" "$DEMO_LAST_PID" "$stdout_file" "$stderr_file"
+        fi
     fi
 }
 
@@ -321,7 +378,7 @@ cleanup_failed_start() {
 trap cleanup_failed_start EXIT
 
 show_logs=0
-[ "$headless" -ne 1 ] && [ "$DEMO_PLATFORM" = "macOS" ] && show_logs=1
+[ "$headless" -ne 1 ] && show_logs=1
 
 demo_info "Starting Routing Service..."
 start_logged_component routingService "Routing Service" "$DEMO_ROUTING_SERVICE" routing_service "$show_logs" \
@@ -345,7 +402,16 @@ if [ "$show_logs" -eq 1 ] && [ "$start_publisher_immediately" -ne 1 ]; then
         "$publisher_start_file" \
         "$publisher_pid_file" "$publisher_pid_file.tmp" \
         "$publisher_prompt_pid_file" "$publisher_prompt_pid_file.tmp"
-    if show_staged_macos_publisher_log \
+    if [ "$DEMO_PLATFORM" = "macOS" ]; then
+        if show_staged_macos_publisher_log \
+            "Kafka Publisher (Circle) - press Enter to start" \
+            "$$" "$publisher_start_file" "$publisher_pid_file" \
+            "$publisher_prompt_pid_file" \
+            "$publisher_stdout_file" "$publisher_stderr_file" \
+            "Press Enter to start publishing $circle_color circles to Kafka topic Circle: "; then
+            publisher_log_staged=1
+        fi
+    elif show_staged_linux_publisher_log \
         "Kafka Publisher (Circle) - press Enter to start" \
         "$$" "$publisher_start_file" "$publisher_pid_file" \
         "$publisher_prompt_pid_file" \

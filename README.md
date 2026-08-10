@@ -8,11 +8,13 @@ You do not need to clone, patch, or maintain another source repository.
 Use the platform-specific clean-room instructions:
 
 - [Apple Silicon macOS installation and demo](MACOS.md)
+- [Ubuntu 22.04 x64 installation and demo](UBUNTU.md) (implementation guide;
+  clean-room VM validation remains pending)
 - [Windows installation](#windows-clean-room-installation), followed by the
   [Windows demo playbook](demo/playbook.md)
 
-The implementation history and remaining Ubuntu 22.04 x64 work are tracked in
-[PORTING.md](PORTING.md).
+The implementation history and remaining platform validation work are tracked
+in [PORTING.md](PORTING.md).
 
 ## Windows clean-room installation
 

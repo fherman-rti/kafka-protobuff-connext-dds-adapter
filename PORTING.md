@@ -224,6 +224,27 @@ demo commands have been promoted to [MACOS.md](MACOS.md). This document remains
 the engineering record and plan for the unfinished Ubuntu and Windows
 regression work.
 
+## Current Ubuntu Implementation Status
+
+Status recorded on 2026-08-10. The shared Bash workflow implements the Ubuntu
+22.04 x64 build, prerequisite, Docker Compose, runtime environment, owned-
+process cleanup, and support-bundle paths. Interactive startup now uses GNOME
+Terminal for the Routing Service and decoded subscriber log viewers and for the
+Enter-gated Kafka publisher. Shapes Demo is launched directly with the same
+isolated workspace and explicit DDS domain used on macOS. Application process
+ownership remains independent of terminal windows and titles.
+
+The launcher rejects interactive use without a desktop display or GNOME
+Terminal and continues to support `--headless` for SSH and process-only runs.
+Docker Engine and the Compose v2 plugin remain the Ubuntu container runtime.
+
+The implementation passes Bash syntax validation on Linux. It has not yet
+passed the Ubuntu 22.04 VirtualBox clean-room build, native `ldd` checks,
+Docker Engine broker run, Connext GUI launch, both traffic directions, repeat
+startup, or cleanup validation. The Phase 9 VM acceptance work therefore
+remains open. The implementation workflow is documented in
+[UBUNTU.md](UBUNTU.md) with its pending validation status stated explicitly.
+
 ## Phase 1: Apple Silicon Feasibility Spike
 
 Time-box this phase before refactoring all scripts.
@@ -462,10 +483,10 @@ For the first Unix implementation, support two modes:
 - Interactive presenter mode, with visible terminal windows and Shapes Demo
 - Headless validation mode, without terminal-window dependencies
 
-Implement macOS interactive launch through Terminal.app log views while the
-native child processes remain directly owned by the startup shell. Implement
-Ubuntu interactive launch only after the behavior works inside the VM desktop.
-Keep process ownership independent of terminal window titles.
+Implement macOS interactive launch through Terminal.app log views and Ubuntu
+interactive launch through GNOME Terminal while the native child processes
+remain directly owned by the startup shell. Keep process ownership independent
+of terminal window titles.
 
 Do not depend on shell profile files to set library paths. Supply the required
 environment directly to each child process. Prefer installed rpaths where the
@@ -541,7 +562,8 @@ differences.
 Install CMake, Make, GCC, Git, Docker Engine, Compose v2, and the Linux x64
 Connext DDS Professional 7.7.0 distribution. Ubuntu's system Bash and Python 3
 provide the orchestration and JSON/ZIP support; PowerShell and Ninja are not
-required.
+required. Keep GNOME Terminal installed for the interactive presenter windows;
+it is part of the standard Ubuntu Desktop baseline.
 
 Add the VM user to the Docker group and verify Docker without `sudo` after a
 new login.
@@ -592,8 +614,9 @@ The two message directions must still pass.
 ## Documentation Deliverables
 
 The tested Apple Silicon workflow is published separately in
-[MACOS.md](MACOS.md). For the remaining targets, after each target passes
-clean-room testing:
+[MACOS.md](MACOS.md). The Ubuntu implementation workflow is published in
+[UBUNTU.md](UBUNTU.md) with an explicit validation warning. After each remaining
+target passes clean-room testing:
 
 - Add tested prerequisites and installation commands to `README.md`.
 - Keep OS-specific installation sections separate.

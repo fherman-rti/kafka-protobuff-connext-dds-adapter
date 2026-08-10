@@ -223,8 +223,13 @@ if [ "$DEMO_PLATFORM" = "macOS" ]; then
 else
     if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
         check_ok "Linux desktop display available"
+        if command -v gnome-terminal >/dev/null 2>&1; then
+            check_ok "GNOME Terminal available for interactive demo windows"
+        else
+            check_warn "GNOME Terminal available" "Install the gnome-terminal package or use --headless"
+        fi
     else
-        check_warn "Linux desktop display" "Use --headless until the VM GUI phase"
+        check_warn "Linux desktop display" "Use --headless over SSH or outside the VM desktop"
     fi
 fi
 
