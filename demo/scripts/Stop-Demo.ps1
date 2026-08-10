@@ -23,17 +23,32 @@ $dockerDir = Join-Path $demoRoot "docker"
 
 if (Test-Path $stateFile) {
     $state = Get-Content $stateFile -Raw | ConvertFrom-Json
+    $allStopped = $true
     foreach ($entry in $state.processes.PSObject.Properties) {
         $processId = $entry.Value
         $proc = Get-Process -Id $processId -ErrorAction SilentlyContinue
         if ($proc) {
             Write-Host "Stopping $($entry.Name) (PID $processId, $($proc.ProcessName))..." -ForegroundColor Cyan
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+            & taskkill.exe /PID $processId /T /F 2>&1 | ForEach-Object {
+                Write-Verbose $_
+            }
+            if (-not $proc.HasExited) {
+                $null = $proc.WaitForExit(5000)
+            }
+            $proc.Refresh()
+            if (-not $proc.HasExited) {
+                Write-Warning "Could not stop $($entry.Name) process tree (PID $processId)."
+                $allStopped = $false
+            }
         } else {
             Write-Host "$($entry.Name) (PID $processId) is not running." -ForegroundColor Yellow
         }
     }
-    Remove-Item $stateFile -Force
+    if ($allStopped) {
+        Remove-Item $stateFile -Force
+    } else {
+        Write-Warning "The demo state file was retained so shutdown can be retried."
+    }
 } else {
     Write-Host "No demo-state.json found; nothing to stop from Start-Demo.ps1." -ForegroundColor Yellow
 }

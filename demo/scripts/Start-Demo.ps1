@@ -116,9 +116,20 @@ $pubProc = Start-DemoWindow -Title "Kafka Publisher (Circle) - press Enter to st
     -LogFile (Join-Path $logsDir "kafka_publisher.log")
 
 Write-Host "Starting Shapes Demo..." -ForegroundColor Cyan
-$shapesProc = Start-Process -FilePath $shapesDemoBat `
+$shapesLauncher = Start-Process -FilePath $shapesDemoBat `
     -ArgumentList @("-domainId", "$DomainId") `
     -PassThru
+$shapesDeadline = (Get-Date).AddSeconds(10)
+do {
+    $shapesProcessInfo = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($shapesLauncher.Id)" `
+        -ErrorAction SilentlyContinue | Where-Object Name -eq "rtishapesdemo.exe" | Select-Object -First 1
+    if (-not $shapesProcessInfo) {
+        Start-Sleep -Milliseconds 100
+    }
+} until ($shapesProcessInfo -or (Get-Date) -ge $shapesDeadline)
+if (-not $shapesProcessInfo) {
+    throw "Shapes Demo started, but its rtishapesdemo.exe process could not be identified."
+}
 
 $state = [ordered]@{
     startedAt        = (Get-Date).ToString("o")
@@ -128,7 +139,7 @@ $state = [ordered]@{
         routingService   = $rsProc.Id
         kafkaSubscriber  = $subProc.Id
         kafkaPublisher   = $pubProc.Id
-        shapesDemo       = $shapesProc.Id
+        shapesDemo       = $shapesProcessInfo.ProcessId
     }
 }
 $stateFile = Join-Path $logsDir "demo-state.json"
