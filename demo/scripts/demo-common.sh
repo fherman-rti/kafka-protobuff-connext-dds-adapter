@@ -275,6 +275,9 @@ demo_process_start_marker() {
 }
 
 demo_process_command() {
+    if [ "${DEMO_PLATFORM:-}" = "Linux" ]; then
+        /usr/bin/readlink "/proc/$1/exe" 2>/dev/null && return 0
+    fi
     /bin/ps -p "$1" -o comm= 2>/dev/null | /usr/bin/sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 

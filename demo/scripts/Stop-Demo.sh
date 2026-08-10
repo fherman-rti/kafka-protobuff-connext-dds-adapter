@@ -109,7 +109,7 @@ if [ -f "$state_file" ]; then
             executable=$(state_get "processes.$component.executablePath" 2>/dev/null || true)
 
             if ! kill -0 "$pid" 2>/dev/null; then
-                demo_warn "$component (PID $pid) is not running."
+                demo_info "$component (PID $pid) is already stopped."
                 continue
             fi
             if ! demo_process_matches "$pid" "$marker" "$executable"; then
