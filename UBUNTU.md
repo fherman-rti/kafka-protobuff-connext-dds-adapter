@@ -121,6 +121,8 @@ The build is complete when it prints `Gateway build and installation
 completed`. The script uses `file` and `ldd` to reject non-x64 artifacts and
 unresolved dependencies. Do not continue after an error.
 
+<strong><ins>SKIP to section 4 if the previous command succeeds.</ins></strong>
+
 If Connext is installed elsewhere or architecture discovery is ambiguous,
 inspect the available targets and provide both values explicitly:
 
@@ -156,6 +158,8 @@ Continue only when it ends with `Prerequisite check PASSED.` A warning that
 Kafka is not reachable is expected because the broker starts next. In a GNOME
 desktop session, the check also verifies GNOME Terminal for the interactive
 viewer windows.
+
+<strong><ins>SKIP to section 5 if the previous command succeeds.</ins></strong>
 
 For a non-standard Connext installation, pass the same `--connext-dir` and
 `--connext-arch` values used for the build.
