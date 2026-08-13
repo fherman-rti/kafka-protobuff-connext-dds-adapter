@@ -37,6 +37,66 @@ Install these products before cloning this repository:
 
 After installing the software, restart Windows if an installer requests it.
 
+#### Cross-host DDS firewall requirement
+
+This step is required when Shapes Demo or another DDS application runs on a
+different machine. It is not needed for a demo contained entirely on the
+Windows host.
+
+Windows Firewall rules created for Routing Service may apply only to the
+`Public` profile even when the active Wi-Fi or Ethernet connection uses the
+`Private` profile. This can produce a misleading partial failure: the remote
+machine discovers the Windows Routing Service participant, but it does not
+discover the `Circle` DataWriter and receives no samples. Local Shapes Demo
+may still receive the Kafka-generated circles.
+
+First, check the active network profile in a normal PowerShell window:
+
+```powershell
+Get-NetConnectionProfile |
+  Format-Table InterfaceAlias, NetworkCategory, IPv4Connectivity
+```
+
+If the interface used for cross-host DDS is `Private`, open **PowerShell as
+Administrator** and add an inbound UDP rule scoped to the Routing Service
+executable. The commands below use the default Connext installation and
+architecture; adjust both values if necessary.
+
+```powershell
+$connextDir = "C:\Program Files\rti_connext_dds-7.7.0"
+$connextArch = "x64Win64VS2017"
+$routingServiceExe = Join-Path $connextDir `
+  "resource\app\bin\$connextArch\rtiroutingserviceapp.exe"
+$ruleName = "RTI Routing Service 7.7 UDP Private"
+
+if (-not (Test-Path -LiteralPath $routingServiceExe -PathType Leaf)) {
+  throw "Routing Service executable not found: $routingServiceExe"
+}
+
+if (-not (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue)) {
+  New-NetFirewallRule `
+    -DisplayName $ruleName `
+    -Direction Inbound `
+    -Action Allow `
+    -Profile Private `
+    -Protocol UDP `
+    -Program $routingServiceExe
+}
+```
+
+Verify the rule in the same elevated PowerShell window:
+
+```powershell
+Get-NetFirewallRule -DisplayName "RTI Routing Service 7.7 UDP Private" |
+  Format-List DisplayName, Enabled, Profile, Direction, Action
+```
+
+The expected values are `Enabled: True`, `Profile: Private`,
+`Direction: Inbound`, and `Action: Allow`. The rule is stored persistently and
+survives a reboot. Do not disable Windows Firewall or create an unrestricted
+all-profile rule. A Connext upgrade installed at a different path requires a
+corresponding rule for the new `rtiroutingserviceapp.exe`.
+
 ### 2. Clone this repository
 
 **Shell:** PowerShell 5.1 or PowerShell 7
