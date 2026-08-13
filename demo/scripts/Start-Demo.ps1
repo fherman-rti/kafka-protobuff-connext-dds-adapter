@@ -25,7 +25,7 @@
     Kafka bootstrap.servers value used by Routing Service and the example apps.
 
 .PARAMETER DomainId
-    DDS domain ID used by Routing Service and Shapes Demo.
+    DDS domain ID used by Routing Service and Shapes Demo. Defaults to 42.
 
 .PARAMETER CircleColor
     Shape color used by the Kafka publisher on the Circle topic.
@@ -36,7 +36,7 @@ param(
     [string]$ConnextArch = "x64Win64VS2017",
     [string]$GatewayInstallDir,
     [string]$BootstrapServers = "localhost:9092",
-    [int]$DomainId = 0,
+    [int]$DomainId = 42,
     [string]$CircleColor = "GREEN"
 )
 

@@ -193,11 +193,10 @@ broker:
 
 ## 6. Run the interactive demonstration
 
-Run this command from a GNOME desktop session, using an otherwise unused DDS
-domain:
+Run this command from a GNOME desktop session using DDS domain 42:
 
 ```bash
-./demo/scripts/Start-Demo.sh --domain-id 101
+./demo/scripts/Start-Demo.sh --domain-id 42
 ```
 
 The launcher creates Shapes Demo plus GNOME Terminal windows for Routing
@@ -227,7 +226,7 @@ For SSH or process-only startup, omit Shapes Demo and GNOME Terminal windows:
 
 ```bash
 ./demo/scripts/Start-Demo.sh \
-  --domain-id 101 \
+  --domain-id 42 \
   --headless \
   --start-publisher-immediately
 ```

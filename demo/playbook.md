@@ -127,7 +127,7 @@ the more compelling proof once messages are flowing.
 **Working directory:** Repository root
 
 ```powershell
-& .\demo\scripts\Start-Demo.ps1
+& .\demo\scripts\Start-Demo.ps1 -DomainId 42
 ```
 
 This opens four windows and records their process IDs to

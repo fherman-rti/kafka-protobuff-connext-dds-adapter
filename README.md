@@ -273,7 +273,7 @@ Create a demonstration-specific copy of the upstream XML with these routes:
 
 Additional configuration requirements:
 
-- Use DDS domain `0` unless the customer environment requires another domain.
+- Use DDS domain `42` for the demonstration.
 - Set `bootstrap.servers` explicitly.
 - Give the Kafka input an explicit, demonstration-specific `group.id`.
 - Retain `auto.offset.reset=latest` for a clean live demonstration.

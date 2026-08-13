@@ -221,11 +221,10 @@ the broker instead:
 
 ## 7. Run the interactive demonstration
 
-Use an otherwise unused DDS domain. Domain 101 was used for the clean-room
-rehearsal:
+Use DDS domain 42 for the demonstration:
 
 ```bash
-./demo/scripts/Start-Demo.sh --domain-id 101
+./demo/scripts/Start-Demo.sh --domain-id 42
 ```
 
 The launcher creates all four demonstration windows at startup: Shapes Demo
@@ -259,7 +258,7 @@ Terminal log viewers:
 
 ```bash
 ./demo/scripts/Start-Demo.sh \
-  --domain-id 101 \
+  --domain-id 42 \
   --headless \
   --start-publisher-immediately
 ```
